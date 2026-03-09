@@ -41,8 +41,15 @@ class AutoTradingMonitor:
         
     def scan_and_trade(self, keywords: list = None, min_confidence: float = 0.7):
         """扫描并执行交易 - 双策略模式"""
+        # 如果没有提供关键词，从 Polymarket 获取实时热门关键词
         if keywords is None:
-            keywords = ['Trump election', 'Biden', 'crypto market', 'Bitcoin BTC', 'Ethereum ETH']
+            try:
+                print("🔍 正在从 Polymarket 获取实时热门关键词...")
+                keywords = self.polymarket.get_trending_keywords(limit=8)
+                print(f"✅ 获取到 {len(keywords)} 个热门关键词: {', '.join(keywords)}")
+            except Exception as e:
+                print(f"⚠️  获取热门关键词失败，使用默认关键词: {e}")
+                keywords = ['Trump', 'crypto', 'Bitcoin', 'Ethereum', 'AI', 'election', 'Fed', 'ETF']
         
         print("=" * 70)
         print("🚀 Polymarket 自动交易监控")

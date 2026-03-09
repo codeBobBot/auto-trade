@@ -78,6 +78,131 @@ class PolymarketGammaClient:
         response = self.session.get(url, params=params, timeout=30)
         response.raise_for_status()
         return response.json()
+    
+    def get_trending_keywords(self, limit: int = 8) -> List[str]:
+        """
+        从 Polymarket 热门市场提取关键词
+        返回实时热门话题关键词列表
+        """
+        keywords = []
+        
+        try:
+            # 获取活跃市场（按交易量排序）
+            url = f"{self.GAMMA_API_URL}/markets"
+            params = {
+                'limit': 20,
+                'active': 'true',
+                'sort': 'volume',
+                'order': 'desc'
+            }
+            
+            response = self.session.get(url, params=params, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                # 处理返回数据（可能是字典包含 markets 列表）
+                markets = data if isinstance(data, list) else data.get('markets', [])
+                
+                print(f"  📊 获取到 {len(markets)} 个热门市场")
+                
+                for market in markets[:15]:
+                    question = market.get('question', '') if isinstance(market, dict) else ''
+                    if question:
+                        words = self._extract_keywords_from_question(question)
+                        keywords.extend(words)
+            
+            # 去重并限制数量
+            unique_keywords = list(dict.fromkeys(keywords))
+            
+            # 如果提取的关键词太少，添加一些默认热门词
+            if len(unique_keywords) < 5:
+                default_keywords = ['Trump', 'crypto', 'Bitcoin', 'Ethereum', 'AI', 'Fed', 'ETF', 'election']
+                for kw in default_keywords:
+                    if kw not in unique_keywords:
+                        unique_keywords.append(kw)
+            
+            return unique_keywords[:limit]
+            
+        except Exception as e:
+            print(f"⚠️  获取热门关键词失败: {e}")
+            import traceback
+            traceback.print_exc()
+            # 返回默认关键词
+            return ['Trump', 'crypto', 'Bitcoin', 'Ethereum', 'AI', 'Fed', 'ETF', 'election']
+    
+    def _extract_keywords_from_question(self, question: str) -> List[str]:
+        """从市场问题中提取关键词"""
+        import re
+        
+        if not question:
+            return []
+        
+        # 定义重要关键词映射（大写 -> 原始格式）
+        important_keywords = {
+            'TRUMP': 'Trump',
+            'BIDEN': 'Biden', 
+            'CRYPTO': 'crypto',
+            'BITCOIN': 'Bitcoin',
+            'ETHEREUM': 'Ethereum',
+            'BTC': 'Bitcoin',
+            'ETH': 'Ethereum',
+            'AI': 'AI',
+            'ELON': 'Elon',
+            'MUSK': 'Musk',
+            'FED': 'Fed',
+            'SEC': 'SEC',
+            'CHINA': 'China',
+            'RUSSIA': 'Russia',
+            'UKRAINE': 'Ukraine',
+            'ISRAEL': 'Israel',
+            'GAZA': 'Gaza',
+            'IRAN': 'Iran',
+            'ELECTION': 'election',
+            'VOTE': 'vote',
+            'PRESIDENT': 'President',
+            'CONGRESS': 'Congress',
+            'SENATE': 'Senate',
+            'ETF': 'ETF',
+            'APPROVAL': 'approval',
+            'LAUNCH': 'launch',
+            'IPO': 'IPO',
+            'TESLA': 'Tesla',
+            'APPLE': 'Apple',
+            'AMAZON': 'Amazon',
+            'GOOGLE': 'Google',
+            'MICROSOFT': 'Microsoft',
+            'META': 'Meta',
+            'RECESSION': 'recession',
+            'INFLATION': 'inflation',
+            'GDP': 'GDP',
+            'NASDAQ': 'NASDAQ',
+            'SP500': 'S&P 500',
+            'NVIDIA': 'NVIDIA',
+        }
+        
+        keywords = []
+        question_upper = question.upper()
+        
+        # 直接匹配关键词
+        for key, value in important_keywords.items():
+            if key in question_upper:
+                keywords.append(value)
+        
+        # 如果没有匹配到，提取前3个重要单词
+        if not keywords:
+            words = question.split()
+            # 过滤停用词和短词
+            stop_words = {'THE', 'A', 'AN', 'IN', 'ON', 'AT', 'TO', 'FOR', 'OF', 'AND', 'OR', 
+                         'BY', 'WILL', 'BE', 'IS', 'ARE', 'THIS', 'THAT', 'WITH', 'HAVE', 
+                         'HAS', 'HAD', 'DO', 'DOES', 'DID', 'CAN', 'COULD', 'WOULD', 'SHOULD'}
+            content_words = [w.strip('?.,!;:') for w in words 
+                           if len(w) > 3 and w.upper() not in stop_words]
+            
+            # 取前3个并首字母大写
+            for word in content_words[:3]:
+                if word:
+                    keywords.append(word.capitalize())
+        
+        return keywords
 
 
 def test_gamma_api():
