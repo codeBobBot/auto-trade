@@ -1,0 +1,83 @@
+[
+  {
+    "alert_id": "extreme_bullish_20260313152405",
+    "alert_type": "sentiment_extreme",
+    "level": "warning",
+    "keyword": "Bitcoin",
+    "title": "⚠️ 情绪极端预警: Bitcoin",
+    "message": "关键词 'Bitcoin' 情绪达到极端水平（分数: +0.85），请关注潜在风险。",
+    "data": {
+      "sentiment_score": 0.85,
+      "signal": "stable",
+      "volatility": 0.1
+    },
+    "timestamp": "2026-03-13T15:24:05.626940",
+    "acknowledged": false
+  },
+  {
+    "alert_id": "extreme_bearish_20260313152405",
+    "alert_type": "sentiment_extreme",
+    "level": "warning",
+    "keyword": "Ethereum",
+    "title": "⚠️ 情绪极端预警: Ethereum",
+    "message": "关键词 'Ethereum' 情绪达到极端水平（分数: -0.75），请关注潜在风险。",
+    "data": {
+      "sentiment_score": -0.75,
+      "signal": "breakdown_down",
+      "volatility": 0.2
+    },
+    "timestamp": "2026-03-13T15:24:05.627278",
+    "acknowledged": false
+  },
+  {
+    "alert_id": "trend_reversal_up_20260313152405",
+    "alert_type": "trend_reversal",
+    "level": "info",
+    "keyword": "Stocks",
+    "title": "🔄 趋势反转预警: Stocks",
+    "message": "关键词 'Stocks' 检测到趋势反转信号（reversal_up），当前分数: +0.30。",
+    "data": {
+      "sentiment_score": 0.3,
+      "signal": "reversal_up",
+      "volatility": 0.4,
+      "is_anomaly": true,
+      "anomaly_score": 2.5
+    },
+    "timestamp": "2026-03-13T15:24:05.627760",
+    "acknowledged": false
+  },
+  {
+    "alert_id": "anomaly_detected_20260313152405",
+    "alert_type": "anomaly_detected",
+    "level": "critical",
+    "keyword": "Stocks",
+    "title": "🚨 异常波动预警: Stocks",
+    "message": "关键词 'Stocks' 检测到异常波动（Z-score: 2.50），请立即关注！",
+    "data": {
+      "sentiment_score": 0.3,
+      "signal": "reversal_up",
+      "volatility": 0.4,
+      "is_anomaly": true,
+      "anomaly_score": 2.5
+    },
+    "timestamp": "2026-03-13T15:24:05.627780",
+    "acknowledged": false
+  },
+  {
+    "alert_id": "high_volatility_20260313152405",
+    "alert_type": "volatility_high",
+    "level": "warning",
+    "keyword": "Stocks",
+    "title": "📊 高波动预警: Stocks",
+    "message": "关键词 'Stocks' 波动率异常升高（0.40），市场可能存在不确定性。",
+    "data": {
+      "sentiment_score": 0.3,
+      "signal": "reversal_up",
+      "volatility": 0.4,
+      "is_anomaly": true,
+      "anomaly_score": 2.5
+    },
+    "timestamp": "2026-03-13T15:24:05.627794",
+    "acknowledged": false
+  }
+]

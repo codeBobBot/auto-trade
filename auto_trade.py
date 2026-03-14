@@ -12,7 +12,8 @@ from gamma_client import PolymarketGammaClient
 from tavily_monitor import TavilyNewsMonitor
 from arbitrage_strategy import ArbitrageStrategy
 from price_strategy import PriceStrategy
-from clob_client import TradingExecutor
+from clob_client_auto_creds import ClobTradingClientAutoCreds
+from src.notification_service import NotificationService, get_notification_service
 from datetime import datetime
 import time
 import json
@@ -28,13 +29,30 @@ class AutoTradingMonitor:
         self.use_price_strategy = use_price_strategy
         self.enable_trading = enable_trading
         
+        # 初始化通知服务
+        self.notification_service = get_notification_service({
+            'enabled_channels': ['telegram', 'console'],
+            'telegram': {
+                'bot_token': os.getenv('TELEGRAM_BOT_TOKEN'),
+                'chat_id': os.getenv('TELEGRAM_CHAT_ID')
+            }
+        })
+        
+        # 发送系统启动通知
+        self.notification_service.system_status(
+            "自动交易监控启动",
+            f"模式: {'实盘交易' if enable_trading else '模拟模式'} | 策略: {'双策略' if use_price_strategy else '情绪策略'}"
+        )
+        
         if enable_trading:
             try:
-                self.executor = TradingExecutor()
+                self.executor = ClobTradingClientAutoCreds(auto_derive_creds=True)
                 print("✅ 交易执行器已启用")
+                self.notification_service.success("交易执行器", "已启用实盘交易功能")
             except ValueError as e:
                 print(f"⚠️  交易执行器未启用: {e}")
                 print("   请配置 CLOB API 以启用自动交易")
+                self.notification_service.warning("交易执行器", f"未启用: {e}")
                 self.enable_trading = False
         
         self.trade_history = []
@@ -121,6 +139,14 @@ class AutoTradingMonitor:
                     print(f"      置信度: {best_signal.confidence:.2%}")
                     print(f"      原因: {best_signal.reason}")
                     
+                    # 发送信号发现通知
+                    self.notification_service.signal_detected(
+                        strategy_name=best_strategy,
+                        market=best_signal.market_question,
+                        signal=best_signal.signal,
+                        confidence=best_signal.confidence
+                    )
+                    
                     # 执行交易
                     if self.enable_trading:
                         order = self.executor.execute_signal(
@@ -142,8 +168,21 @@ class AutoTradingMonitor:
                                 'order_id': order.get('id')
                             })
                             print(f"      ✅ 交易已执行!")
+                            
+                            # 发送交易执行通知
+                            self.notification_service.trade_executed(
+                                strategy=best_strategy,
+                                market=best_signal.market_question,
+                                signal=best_signal.signal,
+                                confidence=best_signal.confidence,
+                                order_id=order.get('id')
+                            )
                         else:
                             print(f"      ❌ 交易执行失败")
+                            self.notification_service.error(
+                                "交易执行失败",
+                                f"策略 {best_strategy} 无法执行交易"
+                            )
                     else:
                         print(f"      ⏸️  模拟模式: 记录信号")
                         executed_trades.append({
@@ -164,6 +203,18 @@ class AutoTradingMonitor:
         print(f"📋 扫描完成")
         print(f"   发现信号: {len(executed_trades)} 笔")
         print("=" * 70)
+        
+        # 发送扫描完成通知
+        if executed_trades:
+            self.notification_service.success(
+                "扫描完成",
+                f"发现 {len(executed_trades)} 笔交易信号"
+            )
+        else:
+            self.notification_service.info(
+                "扫描完成", 
+                "未发现符合条件的交易信号"
+            )
         
         return executed_trades
 

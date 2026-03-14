@@ -1,0 +1,43 @@
+{
+  "keyword": "Federal Reserve cuts interest rates",
+  "overall_sentiment": {
+    "score": -0.2176837548349497,
+    "label": "bearish",
+    "intensity": "weak",
+    "confidence": 0.796969696969697
+  },
+  "by_source": {
+    "news": {
+      "score": -0.21768375483494964,
+      "label": "bearish",
+      "intensity": "weak",
+      "confidence": 0.796969696969697
+    }
+  },
+  "by_time": {
+    "1h": {
+      "score": -0.21768375483494973,
+      "label": "bearish",
+      "intensity": "weak",
+      "confidence": 0.796969696969697
+    }
+  },
+  "trending_keywords": [
+    "inflation",
+    "fed",
+    "rates",
+    "rate",
+    "prices",
+    "interest",
+    "iran",
+    "war",
+    "now",
+    "oil"
+  ],
+  "total_items": 33,
+  "time_range": {
+    "start": "2026-03-14T12:44:27.899304",
+    "end": "2026-03-14T12:44:27.905882"
+  },
+  "timestamp": "2026-03-14T12:44:27.919191"
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "timestamp": "2026-03-13T15:24:05.618907",
+    "sentiment_score": 0.1,
+    "confidence": 0.7,
+    "volume": 10
+  },
+  {
+    "timestamp": "2026-03-13T15:24:05.619920",
+    "sentiment_score": 0.15,
+    "confidence": 0.7,
+    "volume": 10
+  },
+  {
+    "timestamp": "2026-03-13T15:24:05.620859",
+    "sentiment_score": 0.25,
+    "confidence": 0.7,
+    "volume": 10
+  },
+  {
+    "timestamp": "2026-03-13T15:24:05.621816",
+    "sentiment_score": 0.35,
+    "confidence": 0.7,
+    "volume": 10
+  },
+  {
+    "timestamp": "2026-03-13T15:24:05.622424",
+    "sentiment_score": 0.5,
+    "confidence": 0.7,
+    "volume": 10
+  },
+  {
+    "timestamp": "2026-03-13T15:24:05.623341",
+    "sentiment_score": 0.55,
+    "confidence": 0.7,
+    "volume": 10
+  },
+  {
+    "timestamp": "2026-03-13T15:24:05.624107",
+    "sentiment_score": 0.6,
+    "confidence": 0.7,
+    "volume": 10
+  },
+  {
+    "timestamp": "2026-03-13T15:24:05.624836",
+    "sentiment_score": 0.58,
+    "confidence": 0.7,
+    "volume": 10
+  },
+  {
+    "timestamp": "2026-03-13T15:24:05.625574",
+    "sentiment_score": 0.52,
+    "confidence": 0.7,
+    "volume": 10
+  },
+  {
+    "timestamp": "2026-03-13T15:24:05.626051",
+    "sentiment_score": 0.48,
+    "confidence": 0.7,
+    "volume": 10
+  }
+]

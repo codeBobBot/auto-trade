@@ -26,17 +26,28 @@ class PolymarketGammaClient:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
     
-    def get_markets(self, limit: int = 100, offset: int = 0) -> List[Dict]:
-        """获取市场列表"""
-        url = f"{self.GAMMA_API_URL}/markets"
+    def get_markets(self, limit: int = 100, offset: int = 0, active: bool = True, sort_by_volume: bool = True) -> List[Dict]:
+        """获取市场列表 - 使用官方推荐的事件端点"""
+        # 使用 events 端点获取更全面的数据
+        url = f"{self.GAMMA_API_URL}/events"
         params = {
             'limit': limit,
             'offset': offset
         }
         
+        # 添加过滤条件
+        if active is not None:
+            params['active'] = str(active).lower()
+        if sort_by_volume:
+            params['order'] = 'volume24hr'  # 注意：实际字段名是 volume24hr
+            params['ascending'] = 'false'
+        
         response = self.session.get(url, params=params, timeout=30)
         response.raise_for_status()
-        return response.json()
+        
+        data = response.json()
+        # 返回事件列表，每个事件包含市场信息
+        return data if isinstance(data, list) else []
     
     def get_market(self, market_id: str) -> Dict:
         """获取特定市场详情"""
@@ -68,16 +79,135 @@ class PolymarketGammaClient:
     
     def search_markets(self, query: str, limit: int = 20) -> List[Dict]:
         """搜索市场"""
-        url = f"{self.GAMMA_API_URL}/markets"
+        url = f"{self.GAMMA_API_URL}/events"
         params = {
             'limit': limit,
             'search': query,
-            'active': 'true'
+            'order': 'volume24hr',
+            'ascending': 'false'
         }
         
         response = self.session.get(url, params=params, timeout=30)
         response.raise_for_status()
-        return response.json()
+        
+        events = response.json()
+        if not isinstance(events, list):
+            return []
+        
+        # 提取市场信息
+        markets = []
+        for event in events:
+            if isinstance(event, dict):
+                event_markets = event.get('markets', [])
+                for market in event_markets:
+                    if isinstance(market, dict):
+                        market['event_title'] = event.get('title', '')
+                        market['event_slug'] = event.get('slug', '')
+                        markets.append(market)
+        
+        return markets
+    
+    def get_markets_by_tag(self, tag_id: str, limit: int = 20, related_tags: bool = False) -> List[Dict]:
+        """
+        按标签获取市场
+        """
+        try:
+            url = f"{self.GAMMA_API_URL}/events"
+            params = {
+                'tag_id': tag_id,
+                'limit': limit,
+                'active': True,
+                'closed': False,
+                'order': 'volume_24hr',
+                'ascending': False
+            }
+            
+            if related_tags:
+                params['related_tags'] = 'true'
+            
+            response = self.session.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            
+            events = response.json()
+            if not isinstance(events, list):
+                return []
+            
+            # 提取市场信息
+            markets = []
+            for event in events:
+                if isinstance(event, dict):
+                    event_markets = event.get('markets', [])
+                    for market in event_markets:
+                        if isinstance(market, dict):
+                            market['event_title'] = event.get('title', '')
+                            market['event_slug'] = event.get('slug', '')
+                            markets.append(market)
+            
+            return markets
+            
+        except Exception as e:
+            print(f"⚠️  按标签获取市场失败: {e}")
+            return []
+    
+    def get_available_tags(self) -> List[Dict]:
+        """
+        获取可用的标签列表
+        """
+        try:
+            url = f"{self.GAMMA_API_URL}/tags"
+            response = self.session.get(url, timeout=30)
+            response.raise_for_status()
+            
+            tags = response.json()
+            return tags if isinstance(tags, list) else []
+            
+        except Exception as e:
+            print(f"⚠️  获取标签失败: {e}")
+            return []
+    
+    def get_trending_markets(self, limit: int = 20) -> List[Dict]:
+        """
+        获取实时热门市场列表
+        按 24 小时交易量排序，返回最活跃的市场
+        """
+        try:
+            # 使用官方推荐的参数获取热门市场
+            url = f"{self.GAMMA_API_URL}/events"
+            params = {
+                'active': 'true',
+                'order': 'volume24hr',
+                'ascending': 'false',
+                'limit': limit
+            }
+            
+            response = self.session.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            
+            events = response.json()
+            if not isinstance(events, list):
+                return []
+            
+            # 提取市场信息
+            trending_markets = []
+            for event in events:
+                if isinstance(event, dict):
+                    markets = event.get('markets', [])
+                    for market in markets:
+                        if isinstance(market, dict):
+                            # 添加事件信息到市场数据
+                            market['event_title'] = event.get('title', '')
+                            market['event_slug'] = event.get('slug', '')
+                            trending_markets.append(market)
+            
+            # 按交易量排序
+            trending_markets.sort(key=lambda x: float(x.get('volume24hr', 0)), reverse=True)
+            
+            print(f"📈 获取到 {len(trending_markets)} 个热门市场")
+            return trending_markets[:limit]
+            
+        except Exception as e:
+            print(f"⚠️  获取热门市场失败: {e}")
+            return []
     
     def get_trending_keywords(self, limit: int = 8) -> List[str]:
         """
@@ -87,28 +217,16 @@ class PolymarketGammaClient:
         keywords = []
         
         try:
-            # 获取活跃市场（按交易量排序）
-            url = f"{self.GAMMA_API_URL}/markets"
-            params = {
-                'limit': 20,
-                'active': 'true',
-                'sort': 'volume',
-                'order': 'desc'
-            }
+            # 获取热门市场
+            trending_markets = self.get_trending_markets(limit=15)
             
-            response = self.session.get(url, params=params, timeout=30)
-            if response.status_code == 200:
-                data = response.json()
-                # 处理返回数据（可能是字典包含 markets 列表）
-                markets = data if isinstance(data, list) else data.get('markets', [])
-                
-                print(f"  📊 获取到 {len(markets)} 个热门市场")
-                
-                for market in markets[:15]:
-                    question = market.get('question', '') if isinstance(market, dict) else ''
-                    if question:
-                        words = self._extract_keywords_from_question(question)
-                        keywords.extend(words)
+            print(f"  📊 分析 {len(trending_markets)} 个热门市场")
+            
+            for market in trending_markets:
+                question = market.get('question', '') if isinstance(market, dict) else ''
+                if question:
+                    words = self._extract_keywords_from_question(question)
+                    keywords.extend(words)
             
             # 去重并限制数量
             unique_keywords = list(dict.fromkeys(keywords))
@@ -212,17 +330,18 @@ def test_gamma_api():
     try:
         client = PolymarketGammaClient()
         
-        # 测试获取市场列表
-        print("  📊 获取活跃市场列表...")
-        markets = client.get_markets(limit=5)
-        print(f"  ✅ 成功获取 {len(markets)} 个市场")
+        # 测试获取实时热门市场
+        print("  📊 获取实时热门市场...")
+        trending_markets = client.get_trending_markets(limit=5)
+        print(f"  ✅ 成功获取 {len(trending_markets)} 个热门市场")
         
-        # 显示市场信息
-        if markets:
-            print("\n  📈 热门市场:")
-            for i, market in enumerate(markets[:3], 1):
+        # 显示热门市场信息
+        if trending_markets:
+            print("\n  🔥 实时热门市场:")
+            for i, market in enumerate(trending_markets[:3], 1):
                 question = market.get('question', 'N/A')
-                volume = market.get('volume', 0)
+                event_title = market.get('event_title', 'N/A')
+                volume_24hr = market.get('volume24hr', 0)
                 liquidity = market.get('liquidity', 0)
                 
                 # 处理 outcomePrices
@@ -237,13 +356,27 @@ def test_gamma_api():
                     except:
                         yes_price = 'N/A'
                 
-                print(f"\n     {i}. {question[:50]}...")
-                print(f"        交易量: ${float(volume):,.0f} | 流动性: ${float(liquidity):,.0f}")
+                print(f"\n     {i}. {question[:60]}...")
+                print(f"        事件: {event_title}")
+                print(f"        24h交易量: ${float(volume_24hr):,.0f} | 流动性: ${float(liquidity):,.0f}")
                 if yes_price != 'N/A':
                     try:
                         print(f"        Yes 价格: {float(yes_price):.2f}")
                     except:
                         print(f"        Yes 价格: {yes_price}")
+        
+        # 测试获取可用标签
+        print("\n  🏷️ 获取可用标签...")
+        tags = client.get_available_tags()
+        print(f"  ✅ 成功获取 {len(tags)} 个标签")
+        
+        # 显示前几个标签
+        if tags:
+            print("\n  📋 热门标签:")
+            for i, tag in enumerate(tags[:5], 1):
+                tag_name = tag.get('name', 'N/A')
+                tag_slug = tag.get('slug', 'N/A')
+                print(f"     {i}. {tag_name} ({tag_slug})")
         
         # 测试搜索
         print("\n  🔎 搜索 'Trump' 相关市场...")

@@ -1,0 +1,43 @@
+{
+  "keyword": "Federal Reserve announces surprise interest rate cut The Fed made an unexpected decision to cut interest rates by 50 basis points",
+  "overall_sentiment": {
+    "score": -0.09056553814023777,
+    "label": "neutral",
+    "intensity": "weak",
+    "confidence": 0.688
+  },
+  "by_source": {
+    "news": {
+      "score": -0.09056553814023774,
+      "label": "neutral",
+      "intensity": "weak",
+      "confidence": 0.688
+    }
+  },
+  "by_time": {
+    "1h": {
+      "score": -0.09056553814023774,
+      "label": "neutral",
+      "intensity": "weak",
+      "confidence": 0.688
+    }
+  },
+  "trending_keywords": [
+    "rate",
+    "fed",
+    "now",
+    "rates",
+    "interest",
+    "federal",
+    "bank",
+    "inflation",
+    "war",
+    "prices"
+  ],
+  "total_items": 25,
+  "time_range": {
+    "start": "2026-03-14T12:44:42.178680",
+    "end": "2026-03-14T12:44:42.185196"
+  },
+  "timestamp": "2026-03-14T12:44:42.196111"
+}
