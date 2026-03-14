@@ -204,7 +204,7 @@ class InformationAdvantageStrategy:
                             # 发送信息优势交易机会通知到Telegram
                             if self.notification_service:
                                 self.notification_service.signal_detected(
-                                    strategy_name="信息优势",
+                                    strategy="信息优势",
                                     market=f"机会: {news.get('title', 'N/A')[:50]}...",
                                     signal=impact.direction,
                                     confidence=impact.confidence

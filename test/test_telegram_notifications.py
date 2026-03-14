@@ -106,7 +106,7 @@ def test_telegram_notifications():
             # 根据方法类型调用不同的参数
             if test_case['method'] == 'signal_detected':
                 method(
-                    strategy_name=test_case['strategy_name'],
+                    strategy=test_case['strategy_name'],
                     market=test_case['market'],
                     signal=test_case['signal'],
                     confidence=test_case['confidence']
@@ -189,7 +189,7 @@ def test_strategy_notifications():
         
         # 发送信号发现通知
         notification_service.signal_detected(
-            strategy_name=notification['strategy'],
+            strategy=notification['strategy'],
             market=notification['opportunity'],
             signal='机会',
             confidence=0.8

@@ -144,7 +144,7 @@ class CrossMarketArbitrageStrategy:
                     # 发送跨市场套利机会通知到Telegram
                     if self.notification_service:
                         self.notification_service.signal_detected(
-                            strategy_name="跨市场套利",
+                            strategy="跨市场套利",
                             market=f"套利机会: {signal.description[:50]}...",
                             signal=signal.type,
                             confidence=signal.confidence

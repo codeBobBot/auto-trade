@@ -189,7 +189,7 @@ class ProbabilityArbitrageStrategy:
                     # 发送套利机会通知到Telegram
                     if self.notification_service:
                         self.notification_service.signal_detected(
-                            strategy_name="概率套利",
+                            strategy="概率套利",
                             market=f"套利机会: {opportunity.description[:50]}...",
                             signal=opportunity.action,
                             confidence=opportunity.confidence
