@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from sentiment_service import GlobalSentimentService
 from gamma_client import PolymarketGammaClient
 from clob_client_auto_creds import ClobTradingClientAutoCreds
+from logger_config import get_strategy_logger
 
 @dataclass
 class NewsImpact:
@@ -35,6 +36,10 @@ class InformationAdvantageStrategy:
     def __init__(self, enable_trading: bool = False, notification_service=None):
         self.enable_trading = enable_trading
         self.notification_service = notification_service
+        
+        # 初始化日志记录器
+        self.logger = get_strategy_logger("information_advantage")
+        self.logger.info(f"初始化信息优势策略 - 交易模式: {'实盘' if enable_trading else '模拟'}")
         
         # 初始化组件
         self.sentiment_service = GlobalSentimentService()

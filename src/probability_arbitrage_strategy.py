@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 from gamma_client import PolymarketGammaClient
 from clob_client_auto_creds import ClobTradingClientAutoCreds
+from logger_config import get_strategy_logger
 
 @dataclass
 class ArbitrageOpportunity:
@@ -36,6 +37,10 @@ class ProbabilityArbitrageStrategy:
     def __init__(self, enable_trading: bool = False, notification_service=None):
         self.enable_trading = enable_trading
         self.notification_service = notification_service
+        
+        # 初始化日志记录器
+        self.logger = get_strategy_logger("probability_arbitrage")
+        self.logger.info(f"初始化概率套利策略 - 交易模式: {'实盘' if enable_trading else '模拟'}")
         
         # 初始化组件
         self.gamma_client = PolymarketGammaClient()
@@ -157,9 +162,9 @@ class ProbabilityArbitrageStrategy:
     
     def scan_arbitrage_opportunities(self, scan_interval: int = 60):
         """持续扫描套利机会"""
-        print("🔍 启动概率套利策略...")
-        print(f"📊 扫描间隔: {scan_interval}秒")
-        print(f"💰 交易模式: {'实盘交易' if self.enable_trading else '模拟模式'}")
+        self.logger.info("启动概率套利策略...")
+        self.logger.info(f"扫描间隔: {scan_interval}秒")
+        self.logger.info(f"交易模式: {'实盘交易' if self.enable_trading else '模拟模式'}")
         
         while True:
             try:
@@ -174,27 +179,27 @@ class ProbabilityArbitrageStrategy:
                 
                 # 4. 执行套利
                 for opportunity in opportunities:
-                    print(f"\n🎯 发现套利机会:")
-                    print(f"   类型: {opportunity.type}")
-                    print(f"   动作: {opportunity.action}")
-                    print(f"   预期收益: {opportunity.expected_return:.2%}")
-                    print(f"   置信度: {opportunity.confidence:.2f}")
-                    print(f"   描述: {opportunity.description}")
+                    self.logger.info(f"发现套利机会:")
+                    self.logger.info(f"   类型: {opportunity.type}")
+                    self.logger.info(f"   动作: {opportunity.action}")
+                    self.logger.info(f"   预期收益: {opportunity.expected_return:.2%}")
+                    self.logger.info(f"   置信度: {opportunity.confidence:.2f}")
+                    self.logger.info(f"   描述: {opportunity.description}")
                     
                     if self.enable_trading:
                         self.execute_arbitrage(opportunity)
                     else:
-                        print("📝 模拟模式：记录套利机会")
+                        self.logger.info("模拟模式：记录套利机会")
                         self.log_arbitrage_opportunity(opportunity)
                 
                 # 5. 等待下次扫描
                 time.sleep(scan_interval)
                 
             except KeyboardInterrupt:
-                print("\n⏹️ 套利策略已停止")
+                self.logger.info("套利策略已停止")
                 break
             except Exception as e:
-                print(f"❌ 套利扫描错误: {e}")
+                self.logger.error(f"套利扫描错误: {e}")
                 time.sleep(60)
     
     def update_mutually_exclusive_groups(self, markets: List[Dict]):
@@ -319,28 +324,28 @@ class ProbabilityArbitrageStrategy:
         """发现套利机会"""
         opportunities = []
         
-        print(f"🔍 检查 {len(self.mutually_exclusive_groups)} 个互斥事件组")
+        self.logger.debug(f"检查 {len(self.mutually_exclusive_groups)} 个互斥事件组")
         
         for group_name, group_info in self.mutually_exclusive_groups.items():
             markets = group_info['markets']
             
-            print(f"📊 组 {group_name}: {len(markets)} 个市场")
+            self.logger.debug(f"组 {group_name}: {len(markets)} 个市场")
             
             if len(markets) < 2:
-                print(f"   ⚠️ 市场数量不足，跳过")
+                self.logger.warning(f"市场数量不足，跳过组 {group_name}")
                 continue  # 至少需要2个市场才能形成套利
             
             # 计算概率总和
             total_probability = self.calculate_total_probability(markets)
-            print(f"   📈 概率总和: {total_probability:.3f}")
+            self.logger.debug(f"概率总和: {total_probability:.3f}")
             
             # 发现概率套利
             prob_arbitrage = self.find_probability_arbitrage(markets, total_probability, group_info)
             if prob_arbitrage:
                 opportunities.append(prob_arbitrage)
-                print(f"   ✅ 发现套利机会: {prob_arbitrage.description}")
+                self.logger.info(f"发现套利机会: {prob_arbitrage.description}")
             else:
-                print(f"   ❌ 未发现套利机会")
+                self.logger.debug("未发现套利机会")
             
             # 发现跨市场套利
             cross_arbitrage = self.find_cross_market_arbitrage(markets, group_info)
@@ -756,7 +761,7 @@ class ProbabilityArbitrageStrategy:
     
     def execute_arbitrage(self, opportunity: ArbitrageOpportunity):
         """执行套利交易"""
-        print(f"🎯 执行套利: {opportunity.action}")
+        self.logger.info(f"执行套利: {opportunity.action}")
         
         try:
             if opportunity.action == 'sell_all':
@@ -781,7 +786,7 @@ class ProbabilityArbitrageStrategy:
             self.log_arbitrage_trade(opportunity)
             
         except Exception as e:
-            print(f"❌ 套利执行失败: {e}")
+            self.logger.error(f"套利执行失败: {e}")
     
     def execute_buy_order(self, market: Dict, opportunity: ArbitrageOpportunity):
         """执行买入订单"""
@@ -794,10 +799,10 @@ class ProbabilityArbitrageStrategy:
                 size=position_size,
                 side='buy'
             )
-            print(f"✅ 买入订单: {order_id} - {market['question'][:30]}...")
+            self.logger.info(f"买入订单: {order_id} - {market['question'][:30]}...")
             
         except Exception as e:
-            print(f"❌ 买入失败: {e}")
+            self.logger.error(f"买入失败: {e}")
     
     def execute_sell_order(self, market: Dict, opportunity: ArbitrageOpportunity):
         """执行卖出订单"""
@@ -810,10 +815,10 @@ class ProbabilityArbitrageStrategy:
                 size=position_size,
                 side='sell'
             )
-            print(f"✅ 卖出订单: {order_id} - {market['question'][:30]}...")
+            self.logger.info(f"卖出订单: {order_id} - {market['question'][:30]}...")
             
         except Exception as e:
-            print(f"❌ 卖出失败: {e}")
+            self.logger.error(f"卖出失败: {e}")
     
     def calculate_arbitrage_position_size(self, market: Dict, opportunity: ArbitrageOpportunity) -> float:
         """动态计算套利仓位大小"""
@@ -953,7 +958,7 @@ class ProbabilityArbitrageStrategy:
             'description': opportunity.description
         }
         
-        print(f"📊 套利机会记录: {json.dumps(opportunity_data, indent=2)}")
+        self.logger.debug(f"套利机会记录: {json.dumps(opportunity_data)}")
     
     def log_arbitrage_trade(self, opportunity: ArbitrageOpportunity):
         """记录套利交易"""
@@ -974,7 +979,7 @@ class ProbabilityArbitrageStrategy:
             ]
         }
         
-        print(f"💼 套利交易记录: {json.dumps(trade_record, indent=2)}")
+        self.logger.info(f"套利交易记录: {json.dumps(trade_record)}")
 
 def test_arbitrage_strategy():
     """测试概率套利策略"""

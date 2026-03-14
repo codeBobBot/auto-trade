@@ -16,6 +16,7 @@ import requests
 import logging
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
+from logger_config import get_telegram_logger
 
 @dataclass
 class BotCommand:
@@ -32,6 +33,10 @@ class TelegramBotService:
         self.token = token
         self.chat_id = chat_id
         self.strategy_manager = strategy_manager
+        
+        # 初始化日志记录器
+        self.logger = get_telegram_logger()
+        self.logger.info(f"初始化Telegram Bot服务 - Chat ID: {chat_id}")
         
         # Bot配置
         self.bot = Bot(token=token)

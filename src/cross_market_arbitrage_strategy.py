@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 from gamma_client import PolymarketGammaClient
 from clob_client_auto_creds import ClobTradingClientAutoCreds
+from logger_config import get_strategy_logger
 
 @dataclass
 class CorrelatedMarket:
@@ -44,6 +45,10 @@ class CrossMarketArbitrageStrategy:
     def __init__(self, enable_trading: bool = False, notification_service=None):
         self.enable_trading = enable_trading
         self.notification_service = notification_service
+        
+        # 初始化日志记录器
+        self.logger = get_strategy_logger("cross_market_arbitrage")
+        self.logger.info(f"初始化跨市场套利策略 - 交易模式: {'实盘' if enable_trading else '模拟'}")
         
         # 初始化组件
         self.gamma_client = PolymarketGammaClient()
@@ -112,9 +117,9 @@ class CrossMarketArbitrageStrategy:
     
     def scan_cross_market_arbitrage(self, scan_interval: int = 90):
         """持续扫描跨市场套利机会"""
-        print("🔍 启动跨市场套利策略...")
-        print(f"📊 扫描间隔: {scan_interval}秒")
-        print(f"💰 交易模式: {'实盘交易' if self.enable_trading else '模拟模式'}")
+        self.logger.info("启动跨市场套利策略...")
+        self.logger.info(f"扫描间隔: {scan_interval}秒")
+        self.logger.info(f"交易模式: {'实盘交易' if self.enable_trading else '模拟模式'}")
         
         while True:
             try:
@@ -129,27 +134,27 @@ class CrossMarketArbitrageStrategy:
                 
                 # 4. 执行套利
                 for signal in arbitrage_signals:
-                    print(f"\n🎯 发现跨市场套利机会:")
-                    print(f"   类型: {signal.type}")
-                    print(f"   价格差异: {signal.correlated_market.price_discrepancy:.2%}")
-                    print(f"   预期收益: {signal.expected_return:.2%}")
-                    print(f"   置信度: {signal.confidence:.2f}")
-                    print(f"   描述: {signal.description}")
+                    self.logger.info(f"发现跨市场套利机会:")
+                    self.logger.info(f"   类型: {signal.type}")
+                    self.logger.info(f"   价格差异: {signal.correlated_market.price_discrepancy:.2%}")
+                    self.logger.info(f"   预期收益: {signal.expected_return:.2%}")
+                    self.logger.info(f"   置信度: {signal.confidence:.2f}")
+                    self.logger.info(f"   描述: {signal.description}")
                     
                     if self.enable_trading:
                         self.execute_cross_market_arbitrage(signal)
                     else:
-                        print("📝 模拟模式：记录套利机会")
+                        self.logger.info("模拟模式：记录套利机会")
                         self.log_arbitrage_signal(signal)
                 
                 # 5. 等待下次扫描
                 time.sleep(scan_interval)
                 
             except KeyboardInterrupt:
-                print("\n⏹️ 跨市场套利策略已停止")
+                self.logger.info("跨市场套利策略已停止")
                 break
             except Exception as e:
-                print(f"❌ 跨市场套利扫描错误: {e}")
+                self.logger.error(f"跨市场套利扫描错误: {e}")
                 time.sleep(60)
     
     def find_correlated_markets(self, markets: List[Dict]) -> List[CorrelatedMarket]:
@@ -329,7 +334,7 @@ class CrossMarketArbitrageStrategy:
     
     def execute_cross_market_arbitrage(self, signal: ArbitrageSignal):
         """执行跨市场套利"""
-        print(f"🎯 执行跨市场套利: {signal.type}")
+        self.logger.info(f"执行跨市场套利: {signal.type}")
         
         try:
             if signal.type == 'buy_low_sell_high':
@@ -352,7 +357,7 @@ class CrossMarketArbitrageStrategy:
             self.log_arbitrage_trade(signal)
             
         except Exception as e:
-            print(f"❌ 跨市场套利执行失败: {e}")
+            self.logger.error(f"跨市场套利执行失败: {e}")
     
     def execute_buy_order(self, market: Dict, signal: ArbitrageSignal):
         """执行买入订单"""
@@ -365,10 +370,10 @@ class CrossMarketArbitrageStrategy:
                 size=position_size,
                 side='buy'
             )
-            print(f"✅ 买入订单: {order_id} - {market['question'][:30]}...")
+            self.logger.info(f"买入订单: {order_id} - {market['question'][:30]}...")
             
         except Exception as e:
-            print(f"❌ 买入失败: {e}")
+            self.logger.error(f"买入失败: {e}")
     
     def execute_sell_order(self, market: Dict, signal: ArbitrageSignal):
         """执行卖出订单"""
@@ -381,10 +386,10 @@ class CrossMarketArbitrageStrategy:
                 size=position_size,
                 side='sell'
             )
-            print(f"✅ 卖出订单: {order_id} - {market['question'][:30]}...")
+            self.logger.info(f"卖出订单: {order_id} - {market['question'][:30]}...")
             
         except Exception as e:
-            print(f"❌ 卖出失败: {e}")
+            self.logger.error(f"卖出失败: {e}")
     
     def calculate_position_size(self, market: Dict, signal: ArbitrageSignal) -> float:
         """计算仓位大小"""

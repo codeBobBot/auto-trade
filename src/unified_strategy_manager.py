@@ -25,6 +25,7 @@ from cross_market_arbitrage_strategy import CrossMarketArbitrageStrategy
 from time_arbitrage_strategy import TimeArbitrageStrategy
 from notification_service import NotificationService, get_notification_service
 from telegram_bot_service import TelegramBotService, get_telegram_bot
+from logger_config import get_system_logger, get_strategy_logger
 
 @dataclass
 class StrategyConfig:
@@ -70,6 +71,10 @@ class UnifiedStrategyManager:
         self.enable_trading = enable_trading
         self.total_capital = total_capital
         
+        # 初始化日志记录器
+        self.logger = get_system_logger()
+        self.logger.info(f"初始化统一策略管理器 - 交易模式: {'实盘' if enable_trading else '模拟'}, 总资金: ${total_capital:,.2f}")
+        
         # 初始化通知服务
         self.notification_service = get_notification_service({
             'enabled_channels': ['telegram', 'console'],
@@ -88,9 +93,9 @@ class UnifiedStrategyManager:
                     os.getenv('TELEGRAM_CHAT_ID'),
                     self
                 )
-                print("✅ Telegram Bot服务已配置")
+                self.logger.info("Telegram Bot服务已配置")
             except Exception as e:
-                print(f"⚠️ Telegram Bot初始化失败: {e}")
+                self.logger.error(f"Telegram Bot初始化失败: {e}")
         
         # 策略配置
         self.strategy_configs = {
@@ -223,18 +228,18 @@ class UnifiedStrategyManager:
     
     def start_all_strategies(self):
         """启动所有策略"""
-        print("🚀 启动统一策略管理器...")
-        print(f"💰 总资金: ${self.total_capital:,.2f}")
-        print(f"🎯 交易模式: {'实盘交易' if self.enable_trading else '模拟模式'}")
+        self.logger.info("启动统一策略管理器...")
+        self.logger.info(f"总资金: ${self.total_capital:,.2f}")
+        self.logger.info(f"交易模式: {'实盘交易' if self.enable_trading else '模拟模式'}")
         
         # 启动Telegram Bot
         if self.telegram_bot:
             try:
                 self.telegram_bot.start_bot()
                 self.notification_service.success("Telegram Bot", "交互式Bot已启动，可以使用Telegram发送指令")
-                print("🤖 Telegram交互Bot已启动")
+                self.logger.info("Telegram交互Bot已启动")
             except Exception as e:
-                print(f"⚠️ Telegram Bot启动失败: {e}")
+                self.logger.error(f"Telegram Bot启动失败: {e}")
         
         self.is_running = True
         
@@ -250,20 +255,21 @@ class UnifiedStrategyManager:
                         config
                     )
                     futures.append(future)
-                    print(f"📊 启动策略: {config.name}")
+                    self.logger.info(f"启动策略: {config.name}")
             
             # 等待所有策略完成
             for future in as_completed(futures):
                 try:
                     future.result()
                 except Exception as e:
-                    print(f"❌ 策略执行错误: {e}")
+                    self.logger.error(f"策略执行错误: {e}")
     
     def run_strategy_monitor(self, strategy_name: str, config: StrategyConfig):
         """运行单个策略监控"""
         strategy = self.strategies[strategy_name]
+        strategy_logger = get_strategy_logger(strategy_name)
         
-        print(f"🔄 开始监控策略: {config.name}")
+        strategy_logger.info(f"开始监控策略: {config.name}")
         
         while self.is_running:
             try:
