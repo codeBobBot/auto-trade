@@ -186,6 +186,22 @@ class ProbabilityArbitrageStrategy:
                     self.logger.info(f"   置信度: {opportunity.confidence:.2f}")
                     self.logger.info(f"   描述: {opportunity.description}")
                     
+                    # 发送套利机会通知到Telegram
+                    if self.notification_service:
+                        self.notification_service.signal_detected(
+                            strategy_name="概率套利",
+                            market=f"套利机会: {opportunity.description[:50]}...",
+                            signal=opportunity.action,
+                            confidence=opportunity.confidence
+                        )
+                        self.notification_service.info(
+                            "套利详情", 
+                            f"类型: {opportunity.type}\n"
+                            f"预期收益: {opportunity.expected_return:.2%}\n"
+                            f"置信度: {opportunity.confidence:.2f}\n"
+                            f"动作: {opportunity.action}"
+                        )
+                    
                     if self.enable_trading:
                         self.execute_arbitrage(opportunity)
                     else:
@@ -763,6 +779,15 @@ class ProbabilityArbitrageStrategy:
         """执行套利交易"""
         self.logger.info(f"执行套利: {opportunity.action}")
         
+        # 发送套利执行通知
+        if self.notification_service:
+            self.notification_service.info(
+                "套利执行", 
+                f"开始执行 {opportunity.action}\n"
+                f"描述: {opportunity.description[:50]}...\n"
+                f"预期收益: {opportunity.expected_return:.2%}"
+            )
+        
         try:
             if opportunity.action == 'sell_all':
                 # 卖出所有市场
@@ -785,8 +810,26 @@ class ProbabilityArbitrageStrategy:
             # 记录套利交易
             self.log_arbitrage_trade(opportunity)
             
+            # 发送套利执行成功通知
+            if self.notification_service:
+                self.notification_service.success(
+                    "套利执行成功", 
+                    f"{opportunity.action} 执行完成\n"
+                    f"描述: {opportunity.description[:50]}...\n"
+                    f"预期收益: {opportunity.expected_return:.2%}"
+                )
+            
         except Exception as e:
             self.logger.error(f"套利执行失败: {e}")
+            
+            # 发送套利执行失败通知
+            if self.notification_service:
+                self.notification_service.error(
+                    "套利执行失败", 
+                    f"执行 {opportunity.action} 失败\n"
+                    f"错误: {str(e)}\n"
+                    f"描述: {opportunity.description[:50]}..."
+                )
     
     def execute_buy_order(self, market: Dict, opportunity: ArbitrageOpportunity):
         """执行买入订单"""

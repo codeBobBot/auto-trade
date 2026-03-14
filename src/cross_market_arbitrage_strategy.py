@@ -141,6 +141,22 @@ class CrossMarketArbitrageStrategy:
                     self.logger.info(f"   置信度: {signal.confidence:.2f}")
                     self.logger.info(f"   描述: {signal.description}")
                     
+                    # 发送跨市场套利机会通知到Telegram
+                    if self.notification_service:
+                        self.notification_service.signal_detected(
+                            strategy_name="跨市场套利",
+                            market=f"套利机会: {signal.description[:50]}...",
+                            signal=signal.type,
+                            confidence=signal.confidence
+                        )
+                        self.notification_service.info(
+                            "跨市场套利详情", 
+                            f"类型: {signal.type}\n"
+                            f"价格差异: {signal.correlated_market.price_discrepancy:.2%}\n"
+                            f"预期收益: {signal.expected_return:.2%}\n"
+                            f"置信度: {signal.confidence:.2f}"
+                        )
+                    
                     if self.enable_trading:
                         self.execute_cross_market_arbitrage(signal)
                     else:
@@ -336,6 +352,16 @@ class CrossMarketArbitrageStrategy:
         """执行跨市场套利"""
         self.logger.info(f"执行跨市场套利: {signal.type}")
         
+        # 发送跨市场套利执行通知
+        if self.notification_service:
+            self.notification_service.info(
+                "跨市场套利执行", 
+                f"开始执行 {signal.type}\n"
+                f"描述: {signal.description[:50]}...\n"
+                f"预期收益: {signal.expected_return:.2%}\n"
+                f"价格差异: {signal.correlated_market.price_discrepancy:.2%}"
+            )
+        
         try:
             if signal.type == 'buy_low_sell_high':
                 # 买入低价市场，卖出高价市场
@@ -356,8 +382,27 @@ class CrossMarketArbitrageStrategy:
             # 记录套利交易
             self.log_arbitrage_trade(signal)
             
+            # 发送跨市场套利执行成功通知
+            if self.notification_service:
+                self.notification_service.success(
+                    "跨市场套利执行成功", 
+                    f"{signal.type} 执行完成\n"
+                    f"描述: {signal.description[:50]}...\n"
+                    f"预期收益: {signal.expected_return:.2%}\n"
+                    f"价格差异: {signal.correlated_market.price_discrepancy:.2%}"
+                )
+            
         except Exception as e:
             self.logger.error(f"跨市场套利执行失败: {e}")
+            
+            # 发送跨市场套利执行失败通知
+            if self.notification_service:
+                self.notification_service.error(
+                    "跨市场套利执行失败", 
+                    f"执行 {signal.type} 失败\n"
+                    f"错误: {str(e)}\n"
+                    f"描述: {signal.description[:50]}..."
+                )
     
     def execute_buy_order(self, market: Dict, signal: ArbitrageSignal):
         """执行买入订单"""

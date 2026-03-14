@@ -181,9 +181,9 @@ class InformationAdvantageStrategy:
     
     def monitor_news_continuously(self, check_interval: int = 30):
         """持续监控新闻并自动交易"""
-        print("🚀 启动信息优势交易策略...")
-        print(f"📊 检查间隔: {check_interval}秒")
-        print(f"💰 交易模式: {'启用' if self.enable_trading else '模拟模式'}")
+        self.logger.info("启动信息优势交易策略...")
+        self.logger.info(f"检查间隔: {check_interval}秒")
+        self.logger.info(f"交易模式: {'启用' if self.enable_trading else '模拟模式'}")
         
         while True:
             try:
@@ -196,16 +196,32 @@ class InformationAdvantageStrategy:
                         impact = self.analyze_news_impact(news)
                         
                         if impact.confidence > 0.7:
-                            print(f"\n🔥 发现高置信度机会: {impact.confidence:.2f}")
-                            print(f"📰 新闻: {news.get('title', 'N/A')[:50]}...")
-                            print(f"🎯 方向: {impact.direction}")
-                            print(f"🏷️ 关键词: {', '.join(impact.keywords)}")
+                            self.logger.info(f"发现高置信度机会: {impact.confidence:.2f}")
+                            self.logger.info(f"新闻: {news.get('title', 'N/A')[:50]}...")
+                            self.logger.info(f"方向: {impact.direction}")
+                            self.logger.info(f"关键词: {', '.join(impact.keywords)}")
+                            
+                            # 发送信息优势交易机会通知到Telegram
+                            if self.notification_service:
+                                self.notification_service.signal_detected(
+                                    strategy_name="信息优势",
+                                    market=f"机会: {news.get('title', 'N/A')[:50]}...",
+                                    signal=impact.direction,
+                                    confidence=impact.confidence
+                                )
+                                self.notification_service.info(
+                                    "信息优势详情", 
+                                    f"新闻: {news.get('title', 'N/A')[:40]}...\n"
+                                    f"方向: {impact.direction}\n"
+                                    f"置信度: {impact.confidence:.2f}\n"
+                                    f"关键词: {', '.join(impact.keywords[:3])}"
+                                )
                             
                             # 3. 执行交易
                             if self.enable_trading:
                                 self.execute_trades(impact)
                             else:
-                                print("📝 模拟模式：记录交易机会")
+                                self.logger.info("模拟模式：记录交易机会")
                                 self.log_trade_opportunity(impact)
                 
                 # 4. 清理过期新闻记录
@@ -215,10 +231,10 @@ class InformationAdvantageStrategy:
                 time.sleep(check_interval)
                 
             except KeyboardInterrupt:
-                print("\n⏹️ 策略已停止")
+                self.logger.info("策略已停止")
                 break
             except Exception as e:
-                print(f"❌ 策略执行错误: {e}")
+                self.logger.error(f"策略执行错误: {e}")
                 time.sleep(60)  # 错误后等待1分钟
     
     def get_latest_news(self, minutes: int = 5) -> List[Dict]:

@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 from gamma_client import PolymarketGammaClient
 from clob_client_auto_creds import ClobTradingClientAutoCreds
+from logger_config import get_strategy_logger
 
 @dataclass
 class TimeArbitrageOpportunity:
@@ -37,6 +38,10 @@ class TimeArbitrageStrategy:
     def __init__(self, enable_trading: bool = False, notification_service=None):
         self.enable_trading = enable_trading
         self.notification_service = notification_service
+        
+        # 初始化日志记录器
+        self.logger = get_strategy_logger("time_arbitrage")
+        self.logger.info(f"初始化时间套利策略 - 交易模式: {'实盘' if enable_trading else '模拟'}")
         
         # 初始化组件
         self.gamma_client = PolymarketGammaClient()
@@ -71,9 +76,9 @@ class TimeArbitrageStrategy:
     
     def scan_time_arbitrage(self, scan_interval: int = 120):
         """持续扫描时间套利机会"""
-        print("🔍 启动时间套利策略...")
-        print(f"📊 扫描间隔: {scan_interval}秒")
-        print(f"💰 交易模式: {'实盘交易' if self.enable_trading else '模拟模式'}")
+        self.logger.info("启动时间套利策略...")
+        self.logger.info(f"扫描间隔: {scan_interval}秒")
+        self.logger.info(f"交易模式: {'实盘交易' if self.enable_trading else '模拟模式'}")
         
         while True:
             try:
@@ -91,29 +96,46 @@ class TimeArbitrageStrategy:
                 
                 # 5. 执行套利
                 for opportunity in arbitrage_opportunities:
-                    print(f"\n🎯 发现时间套利机会:")
-                    print(f"   市场: {opportunity.market['question'][:50]}...")
-                    print(f"   到期时间: {opportunity.days_to_expiry}天")
-                    print(f"   当前价格: {opportunity.current_price:.2f}")
-                    print(f"   真实概率: {opportunity.estimated_true_probability:.2f}")
-                    print(f"   价格差异: {opportunity.price_discrepancy:.2%}")
-                    print(f"   预期收益: {opportunity.expected_return:.2%}")
-                    print(f"   紧急程度: {opportunity.urgency}")
+                    self.logger.info(f"发现时间套利机会:")
+                    self.logger.info(f"   市场: {opportunity.market['question'][:50]}...")
+                    self.logger.info(f"   到期时间: {opportunity.days_to_expiry}天")
+                    self.logger.info(f"   当前价格: {opportunity.current_price:.2f}")
+                    self.logger.info(f"   真实概率: {opportunity.estimated_true_probability:.2f}")
+                    self.logger.info(f"   价格差异: {opportunity.price_discrepancy:.2%}")
+                    self.logger.info(f"   预期收益: {opportunity.expected_return:.2%}")
+                    self.logger.info(f"   紧急程度: {opportunity.urgency}")
+                    
+                    # 发送时间套利机会通知到Telegram
+                    if self.notification_service:
+                        self.notification_service.signal_detected(
+                            strategy_name="时间套利",
+                            market=f"套利机会: {opportunity.market['question'][:50]}...",
+                            signal=f"到期{opportunity.days_to_expiry}天",
+                            confidence=opportunity.confidence
+                        )
+                        self.notification_service.info(
+                            "时间套利详情", 
+                            f"市场: {opportunity.market['question'][:40]}...\n"
+                            f"到期时间: {opportunity.days_to_expiry}天\n"
+                            f"价格差异: {opportunity.price_discrepancy:.2%}\n"
+                            f"预期收益: {opportunity.expected_return:.2%}\n"
+                            f"紧急程度: {opportunity.urgency}"
+                        )
                     
                     if self.enable_trading:
                         self.execute_time_arbitrage(opportunity)
                     else:
-                        print("📝 模拟模式：记录套利机会")
+                        self.logger.info("模拟模式：记录套利机会")
                         self.log_arbitrage_opportunity(opportunity)
                 
                 # 6. 等待下次扫描
                 time.sleep(scan_interval)
                 
             except KeyboardInterrupt:
-                print("\n⏹️ 时间套利策略已停止")
+                self.logger.info("时间套利策略已停止")
                 break
             except Exception as e:
-                print(f"❌ 时间套利扫描错误: {e}")
+                self.logger.error(f"时间套利扫描错误: {e}")
                 time.sleep(60)
     
     def filter_expiry_markets(self, markets: List[Dict]) -> List[Dict]:
