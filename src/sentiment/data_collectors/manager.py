@@ -17,7 +17,7 @@ from .news_collector import NewsCollector
 from .twitter_collector import TwitterCollector
 from .reddit_collector import RedditCollector
 
-load_dotenv('/Users/lsl_mac/.openclaw/workspace/projects/polymarket-arbitrage/config/.env')
+load_dotenv('config/.env')
 
 
 @dataclass

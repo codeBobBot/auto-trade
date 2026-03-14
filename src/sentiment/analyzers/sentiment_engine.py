@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 
 from ..data_collectors.base_collector import CollectedData, DataSource
 
-load_dotenv('/Users/lsl_mac/.openclaw/workspace/projects/polymarket-arbitrage/config/.env')
+load_dotenv('config/.env')
 
 
 class SentimentLabel(Enum):

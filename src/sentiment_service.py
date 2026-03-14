@@ -27,7 +27,7 @@ except ImportError:
     from sentiment.sentiment_cache import SentimentDataCache, SentimentDataStore
     from sentiment.analyzers.sentiment_engine import AnalysisResult
 
-load_dotenv('/Users/lsl_mac/.openclaw/workspace/projects/polymarket-arbitrage/config/.env')
+load_dotenv('config/.env')
 
 
 @dataclass

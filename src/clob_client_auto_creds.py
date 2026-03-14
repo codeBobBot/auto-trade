@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from py_clob_client import ClobClient
 from py_clob_client.clob_types import ApiCreds, BalanceAllowanceParams
 
-load_dotenv('/Users/lsl_mac/.openclaw/workspace/projects/polymarket-arbitrage/config/.env', override=True)
+load_dotenv('config/.env', override=True)
 
 
 class ClobTradingClientAutoCreds:
@@ -135,7 +135,7 @@ class ClobTradingClientAutoCreds:
     def _save_derived_creds(self):
         """保存生成的凭证到 .env 文件"""
         try:
-            env_file = '/Users/lsl_mac/.openclaw/workspace/projects/polymarket-arbitrage/config/.env'
+            env_file = 'config/.env'
             
             # 读取现有 .env 文件
             lines = []

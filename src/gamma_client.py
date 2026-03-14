@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Union
 import requests
 from dotenv import load_dotenv
 
-load_dotenv('/Users/lsl_mac/.openclaw/workspace/projects/polymarket-arbitrage/config/.env')
+load_dotenv('config/.env')
 
 class PolymarketGammaClient:
     """使用 Gamma API 获取 Polymarket 数据"""

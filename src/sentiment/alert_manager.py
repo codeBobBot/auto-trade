@@ -17,7 +17,7 @@ from .analyzers.sentiment_engine import SentimentLabel
 from .trend_tracker import TrendSignal, TrendDirection
 from ..notification_service import NotificationService, get_notification_service, NotificationLevel
 
-load_dotenv('/Users/lsl_mac/.openclaw/workspace/projects/polymarket-arbitrage/config/.env')
+load_dotenv('config/.env')
 
 
 class AlertLevel(Enum):

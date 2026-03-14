@@ -10,7 +10,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.dirname(__file__))
-load_dotenv('/Users/lsl_mac/.openclaw/workspace/projects/polymarket-arbitrage/config/.env')
+load_dotenv('config/.env')
 
 def check_api_configuration():
     """检查 API 配置"""

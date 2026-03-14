@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 
 from .sentiment_engine import SentimentEngine, SentimentScore, SentimentLabel, SentimentIntensity
 
-load_dotenv('/Users/lsl_mac/.openclaw/workspace/projects/polymarket-arbitrage/config/.env')
+load_dotenv('config/.env')
 
 
 class Language(Enum):

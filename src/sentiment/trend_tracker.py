@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 
 from .analyzers.sentiment_engine import SentimentScore, SentimentLabel
 
-load_dotenv('/Users/lsl_mac/.openclaw/workspace/projects/polymarket-arbitrage/config/.env')
+load_dotenv('config/.env')
 
 
 class TrendDirection(Enum):

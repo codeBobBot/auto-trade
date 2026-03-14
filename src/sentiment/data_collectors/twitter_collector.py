@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 from .base_collector import BaseCollector, CollectedData, CollectionResult, DataSource
 
-load_dotenv('/Users/lsl_mac/.openclaw/workspace/projects/polymarket-arbitrage/config/.env')
+load_dotenv('config/.env')
 
 
 class TwitterCollector(BaseCollector):
