@@ -12,14 +12,17 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 try:
-    from .sentiment.data_collectors import DataCollectorManager
-    from .sentiment.analyzers import SentimentEngine, MultilingualAnalyzer
-    from .sentiment.trend_tracker import TrendTracker, TrendSummary
-    from .sentiment.alert_manager import SentimentAlertManager, Alert, AlertLevel
-    from .sentiment.sentiment_cache import SentimentDataCache, SentimentDataStore
-    from .sentiment.analyzers.sentiment_engine import AnalysisResult
+    from sentiment.data_collectors import DataCollectorManager
+    from sentiment.analyzers import SentimentEngine, MultilingualAnalyzer
+    from sentiment.trend_tracker import TrendTracker, TrendSummary
+    from sentiment.alert_manager import SentimentAlertManager, Alert, AlertLevel
+    from sentiment.sentiment_cache import SentimentDataCache, SentimentDataStore
+    from sentiment.analyzers.sentiment_engine import AnalysisResult
 except ImportError:
-    # 处理相对导入问题
+    # 处理导入问题
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(__file__))
     from sentiment.data_collectors import DataCollectorManager
     from sentiment.analyzers import SentimentEngine, MultilingualAnalyzer
     from sentiment.trend_tracker import TrendTracker, TrendSummary

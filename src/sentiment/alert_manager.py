@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 from .analyzers.sentiment_engine import SentimentLabel
 from .trend_tracker import TrendSignal, TrendDirection
-from ..notification_service import NotificationService, get_notification_service, NotificationLevel
+from notification_service import NotificationService, get_notification_service, NotificationLevel
 
 load_dotenv('config/.env')
 

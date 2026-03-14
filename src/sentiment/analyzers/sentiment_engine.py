@@ -14,7 +14,7 @@ from collections import defaultdict
 from enum import Enum
 from dotenv import load_dotenv
 
-from ..data_collectors.base_collector import CollectedData, DataSource
+from sentiment.data_collectors.base_collector import CollectedData, DataSource
 
 load_dotenv('config/.env')
 
