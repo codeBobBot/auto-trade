@@ -107,11 +107,21 @@ class TimeArbitrageStrategy:
                     
                     # 发送时间套利机会通知到Telegram
                     if self.notification_service:
+                        # 准备市场详情信息
+                        market_details = [{
+                            'id': opportunity.market.get('id', 'N/A'),
+                            'question': opportunity.market.get('question', 'N/A'),
+                            'yes_price': opportunity.current_price,
+                            'liquidity': opportunity.market.get('liquidity', 0),
+                            'volume24hr': opportunity.market.get('volume24hr', 0)
+                        }]
+                        
                         self.notification_service.signal_detected(
                             strategy="时间套利",
                             market=f"套利机会: {opportunity.market['question'][:50]}...",
                             signal=f"到期{opportunity.days_to_expiry}天",
-                            confidence=opportunity.confidence
+                            confidence=opportunity.confidence,
+                            market_details=market_details
                         )
                         self.notification_service.info(
                             "时间套利详情", 

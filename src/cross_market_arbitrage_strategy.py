@@ -143,11 +143,30 @@ class CrossMarketArbitrageStrategy:
                     
                     # 发送跨市场套利机会通知到Telegram
                     if self.notification_service:
+                        # 准备市场详情信息
+                        market_details = [
+                            {
+                                'id': signal.correlated_market.market1.get('id', 'N/A'),
+                                'question': signal.correlated_market.market1.get('question', 'N/A'),
+                                'yes_price': self.get_market_price(signal.correlated_market.market1),
+                                'liquidity': signal.correlated_market.market1.get('liquidity', 0),
+                                'volume24hr': signal.correlated_market.market1.get('volume24hr', 0)
+                            },
+                            {
+                                'id': signal.correlated_market.market2.get('id', 'N/A'),
+                                'question': signal.correlated_market.market2.get('question', 'N/A'),
+                                'yes_price': self.get_market_price(signal.correlated_market.market2),
+                                'liquidity': signal.correlated_market.market2.get('liquidity', 0),
+                                'volume24hr': signal.correlated_market.market2.get('volume24hr', 0)
+                            }
+                        ]
+                        
                         self.notification_service.signal_detected(
                             strategy="跨市场套利",
                             market=f"套利机会: {signal.description[:50]}...",
                             signal=signal.type,
-                            confidence=signal.confidence
+                            confidence=signal.confidence,
+                            market_details=market_details
                         )
                         self.notification_service.info(
                             "跨市场套利详情", 

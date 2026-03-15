@@ -203,11 +203,23 @@ class InformationAdvantageStrategy:
                             
                             # 发送信息优势交易机会通知到Telegram
                             if self.notification_service:
+                                # 准备市场详情信息
+                                market_details = []
+                                for market in impact.affected_markets[:5]:  # 最多显示5个市场
+                                    market_details.append({
+                                        'id': market.get('id', 'N/A'),
+                                        'question': market.get('question', 'N/A'),
+                                        'yes_price': self.get_market_price(market),
+                                        'liquidity': market.get('liquidity', 0),
+                                        'volume24hr': market.get('volume24hr', 0)
+                                    })
+                                
                                 self.notification_service.signal_detected(
                                     strategy="信息优势",
                                     market=f"机会: {news.get('title', 'N/A')[:50]}...",
                                     signal=impact.direction,
-                                    confidence=impact.confidence
+                                    confidence=impact.confidence,
+                                    market_details=market_details
                                 )
                                 self.notification_service.info(
                                     "信息优势详情", 
@@ -632,6 +644,29 @@ class InformationAdvantageStrategy:
         
         for news_id in expired_news:
             del self.processed_news[news_id]
+    
+    def get_market_price(self, market: Dict) -> float:
+        """获取市场价格"""
+        # 尝试多种价格字段
+        price_fields = ['yes_price', 'outcomePrices', 'price']
+        
+        for field in price_fields:
+            if field in market:
+                price = market[field]
+                if isinstance(price, (int, float)):
+                    return float(price)
+                elif isinstance(price, str):
+                    try:
+                        return float(price)
+                    except:
+                        continue
+                elif isinstance(price, dict) and 'Yes' in price:
+                    try:
+                        return float(price['Yes'])
+                    except:
+                        continue
+        
+        return 0.5  # 默认价格
 
 def test_strategy():
     """测试信息优势交易策略"""
