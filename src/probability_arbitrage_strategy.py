@@ -137,10 +137,10 @@ class ProbabilityArbitrageStrategy:
         
         # 优化套利阈值
         self.arbitrage_thresholds = {
-            'high_probability': 1.01,  # 概率总和超过1%（更敏感）
-            'low_probability': 0.99,   # 概率总和低于1%（更敏感）
+            'high_probability': 1.01,  # 概率总和超过2%（更敏感）
+            'low_probability': 0.99,   # 概率总和低于2%（更敏感）
             'min_return': 0.005,       # 最小预期收益0.5%（降低门槛）
-            'min_liquidity': 1000,     # 最小流动性1000 USDC（降低门槛）
+            'min_liquidity': 10000,     # 最小流动性10000 USDC（降低门槛）
             'max_price_deviation': 0.7, # 最大价格偏差70%
             'min_markets_count': 2,    # 最小市场数量
             'max_markets_count': 15,   # 最大市场数量
@@ -188,11 +188,23 @@ class ProbabilityArbitrageStrategy:
                     
                     # 发送套利机会通知到Telegram
                     if self.notification_service:
+                        # 准备市场详情信息
+                        market_details = []
+                        for market in opportunity.markets:
+                            market_details.append({
+                                'id': market.get('id', 'N/A'),
+                                'question': market.get('question', 'N/A'),
+                                'yes_price': self.get_market_yes_price(market),
+                                'liquidity': market.get('liquidity', 0),
+                                'volume24hr': market.get('volume24hr', 0)
+                            })
+                        
                         self.notification_service.signal_detected(
                             strategy="概率套利",
                             market=f"套利机会: {opportunity.description[:50]}...",
                             signal=opportunity.action,
-                            confidence=opportunity.confidence
+                            confidence=opportunity.confidence,
+                            market_details=market_details
                         )
                         self.notification_service.info(
                             "套利详情", 

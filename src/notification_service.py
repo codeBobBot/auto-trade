@@ -290,7 +290,7 @@ class NotificationService:
             }
         )
     
-    def signal_detected(self, strategy: str, market: str, signal: str, confidence: float) -> bool:
+    def signal_detected(self, strategy: str, market: str, signal: str, confidence: float, market_details: List[Dict] = None) -> bool:
         """信号发现通知"""
         title = f"🎯 信号发现 - {strategy}"
         content = f"""检测到交易信号
@@ -298,13 +298,26 @@ class NotificationService:
 市场: {market}
 置信度: {confidence:.1%}"""
         
+        # 添加具体市场详情
+        if market_details:
+            content += "\n\n📊 相关市场详情:"
+            for i, mkt in enumerate(market_details[:5], 1):  # 最多显示5个市场
+                content += f"\n{i}. <b>{mkt.get('question', 'N/A')[:40]}...</b>"
+                content += f"\n   🆔 ID: {mkt.get('id', 'N/A')[:12]}..."
+                content += f"\n   💰 价格: {mkt.get('yes_price', mkt.get('price', 'N/A'))}"
+                content += f"\n   💧 流动性: {mkt.get('liquidity', 'N/A'):,} USDC"
+                content += f"\n   📈 24h交易量: {mkt.get('volume24hr', 'N/A'):,} USDC"
+                if i < len(market_details[:5]):
+                    content += "\n"
+        
         return self.info(
             title, content,
             metadata={
                 'strategy': strategy,
                 'market': market,
                 'signal': signal,
-                'confidence': confidence
+                'confidence': confidence,
+                'markets_count': len(market_details) if market_details else 0
             }
         )
     

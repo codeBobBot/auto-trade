@@ -105,11 +105,30 @@ def test_telegram_notifications():
             
             # 根据方法类型调用不同的参数
             if test_case['method'] == 'signal_detected':
+                # 准备测试市场详情
+                test_market_details = [
+                    {
+                        'id': '0x1234567890abcdef',
+                        'question': '特朗普将赢得2024年总统选举吗？',
+                        'yes_price': 0.45,
+                        'liquidity': 15000,
+                        'volume24hr': 25000
+                    },
+                    {
+                        'id': '0xfedcba0987654321',
+                        'question': '拜登将赢得2024年总统选举吗？',
+                        'yes_price': 0.42,
+                        'liquidity': 12000,
+                        'volume24hr': 18000
+                    }
+                ]
+                
                 method(
                     strategy=test_case['strategy_name'],
                     market=test_case['market'],
                     signal=test_case['signal'],
-                    confidence=test_case['confidence']
+                    confidence=test_case['confidence'],
+                    market_details=test_market_details
                 )
             elif test_case['method'] == 'trade_executed':
                 method(
@@ -187,12 +206,25 @@ def test_strategy_notifications():
     for notification in strategy_notifications:
         logger.info(f"🧪 测试 {notification['strategy']} 通知")
         
+        # 准备测试市场详情
+        test_market_details = [
+            {
+                'id': f'0x{hash(notification["strategy"]) % 1000000000:08x}',
+                'question': f'{notification["strategy"]}相关市场1',
+                'yes_price': 0.45 + (i * 0.05),
+                'liquidity': 10000 + (i * 2000),
+                'volume24hr': 15000 + (i * 3000)
+            }
+            for i in range(2)
+        ]
+        
         # 发送信号发现通知
         notification_service.signal_detected(
             strategy=notification['strategy'],
             market=notification['opportunity'],
             signal='机会',
-            confidence=0.8
+            confidence=0.8,
+            market_details=test_market_details
         )
         
         # 发送详细信息
