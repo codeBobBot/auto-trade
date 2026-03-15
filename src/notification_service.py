@@ -305,8 +305,8 @@ class NotificationService:
                 content += f"\n{i}. <b>{mkt.get('question', 'N/A')[:40]}...</b>"
                 content += f"\n   🆔 ID: {mkt.get('id', 'N/A')[:12]}..."
                 content += f"\n   💰 价格: {mkt.get('yes_price', mkt.get('price', 'N/A'))}"
-                content += f"\n   💧 流动性: {mkt.get('liquidity', 'N/A'):,} USDC"
-                content += f"\n   📈 24h交易量: {mkt.get('volume24hr', 'N/A'):,} USDC"
+                content += f"\n   💧 流动性: {mkt.get('liquidity', 'N/A')} USDC"
+                content += f"\n   📈 24h交易量: {mkt.get('volume24hr', 'N/A')} USDC"
                 if i < len(market_details[:5]):
                     content += "\n"
         

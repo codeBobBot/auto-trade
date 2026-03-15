@@ -88,48 +88,204 @@ class ProbabilityArbitrageStrategy:
                 'expected_total_probability': 1.0
             },
             
-            # 体育比赛 - 按赛事分组
+            # 娱乐文化 - 新增分组
+            'entertainment_awards': {
+                'keywords': ['award', 'oscar', 'grammy', 'emmy', 'album', 'music', 'movie', 'film', 'winner'],
+                'exclusion_patterns': ['win', 'lose', 'nominate', 'best', 'song', 'record'],
+                'markets': [],
+                'description': '娱乐奖项',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'entertainment_box_office': {
+                'keywords': ['box office', 'movie', 'film', 'revenue', 'opening', 'gross', 'billion'],
+                'exclusion_patterns': ['million', 'dollar', 'weekend', 'domestic', 'worldwide'],
+                'markets': [],
+                'description': '电影票房',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'entertainment_streaming': {
+                'keywords': ['streaming', 'netflix', 'disney+', 'spotify', 'subscribers', 'views', 'chart'],
+                'exclusion_patterns': ['million', 'billion', 'top', 'number', 'rank'],
+                'markets': [],
+                'description': '流媒体平台',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            
+            # 科技商业 - 新增分组
+            'tech_stock_price': {
+                'keywords': ['stock', 'price', 'reach', 'apple', 'google', 'tesla', 'microsoft', 'amazon', 'meta', 'share'],
+                'exclusion_patterns': ['100', '200', '300', 'trillion', 'billion', 'market cap'],
+                'markets': [],
+                'description': '科技公司股价',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'tech_product_launch': {
+                'keywords': ['launch', 'release', 'product', 'iphone', 'ai', 'chatgpt', 'vision pro', 'tesla', 'cybertruck'],
+                'exclusion_patterns': ['delay', 'cancel', 'postpone', 'recall', '2024', '2025'],
+                'markets': [],
+                'description': '科技产品发布',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'tech_earnings': {
+                'keywords': ['earnings', 'revenue', 'profit', 'quarterly', 'q1', 'q2', 'q3', 'q4', 'guidance'],
+                'exclusion_patterns': ['beat', 'miss', 'meet', 'estimate', 'analyst'],
+                'markets': [],
+                'description': '科技公司财报',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            
+            # AI相关 - 新增分组
+            'ai_development': {
+                'keywords': ['ai', 'artificial intelligence', 'agi', 'gpt', 'openai', 'claude', 'gemini', 'llm'],
+                'exclusion_patterns': ['achieve', 'reach', 'surpass', 'human', 'level', '2024', '2025'],
+                'markets': [],
+                'description': 'AI发展里程碑',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'ai_regulation': {
+                'keywords': ['ai regulation', 'ai act', 'safety', 'ethics', 'congress', 'eu', 'britain', 'law'],
+                'exclusion_patterns': ['pass', 'reject', 'delay', 'implement', 'ban'],
+                'markets': [],
+                'description': 'AI监管政策',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'ai_companies': {
+                'keywords': ['openai', 'anthropic', 'google', 'microsoft', 'meta', 'nvidia', 'amd', 'competition'],
+                'exclusion_patterns': ['win', 'lead', 'dominate', 'acquire', 'merge', 'partnership'],
+                'markets': [],
+                'description': 'AI公司竞争',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            
+            # 国际事务 - 新增分组
+            'international_relations': {
+                'keywords': ['nato', 'eu', 'ukraine', 'china', 'taiwan', 'israel', 'palestine', 'russia', 'trade', 'treaty', 'sanction'],
+                'exclusion_patterns': ['join', 'leave', 'sign', 'impose', 'lift', 'recognize', '2024'],
+                'markets': [],
+                'description': '国际关系',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'geopolitical_conflicts': {
+                'keywords': ['war', 'conflict', 'invasion', 'attack', 'escalation', 'ceasefire', 'peace', 'negotiation'],
+                'exclusion_patterns': ['end', 'start', 'continue', 'escalate', 'decrease', '2024'],
+                'markets': [],
+                'description': '地缘政治冲突',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'global_economy': {
+                'keywords': ['recession', 'inflation', 'gdp', 'global', 'world bank', 'imf', 'crisis', 'recovery'],
+                'exclusion_patterns': ['enter', 'exit', 'avoid', 'experience', '2024', '2025'],
+                'markets': [],
+                'description': '全球经济',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            
+            # 体育比赛 - 扩展分组
             'sports_nba': {
-                'keywords': ['nba', 'basketball', 'game', 'match'],
-                'exclusion_patterns': ['win', 'lose', 'cover', 'spread'],
+                'keywords': ['nba', 'basketball', 'game', 'match', 'championship', 'finals'],
+                'exclusion_patterns': ['win', 'lose', 'cover', 'spread', 'lakers', 'warriors', 'celtics'],
                 'markets': [],
                 'description': 'NBA比赛结果',
                 'mutual_exclusive': True,
                 'expected_total_probability': 1.0
             },
             'sports_nfl': {
-                'keywords': ['nfl', 'football', 'super bowl', 'playoffs'],
-                'exclusion_patterns': ['win', 'lose', 'cover', 'spread'],
+                'keywords': ['nfl', 'american football', 'super bowl', 'playoffs', 'chiefs', 'eagles', '49ers'],
+                'exclusion_patterns': ['win', 'lose', 'cover', 'spread', 'sb', 'champion'],
                 'markets': [],
                 'description': 'NFL比赛结果',
                 'mutual_exclusive': True,
                 'expected_total_probability': 1.0
             },
+            'sports_soccer': {
+                'keywords': ['soccer', 'association football', 'premier league', 'champions league', 'world cup', 'messi', 'ronaldo', 'galatasaray', 'glimt'],
+                'exclusion_patterns': ['win', 'lose', 'draw', 'score', 'goal', 'transfer'],
+                'markets': [],
+                'description': '足球比赛结果',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
             
-            # 加密货币价格 - 按价格区间分组
+            # 加密货币 - 扩展分组
             'crypto_btc_levels': {
-                'keywords': ['bitcoin', 'BTC', 'price', 'reach'],
-                'exclusion_patterns': ['100k', '150k', '200k', '50k', '25k'],
+                'keywords': ['bitcoin', 'BTC', 'price', 'reach', '100k', '150k', '200k', '50k', '25k'],
+                'exclusion_patterns': ['100k', '150k', '200k', '50k', '25k', 'end of year', '2024'],
                 'markets': [],
                 'description': '比特币价格水平',
                 'mutual_exclusive': False,  # 不是完全互斥
                 'expected_total_probability': 0.8  # 考虑其他可能性
             },
+            'crypto_eth_levels': {
+                'keywords': ['ethereum', 'ETH', 'price', 'reach', '5k', '10k', '3k', '8k'],
+                'exclusion_patterns': ['5k', '10k', '3k', '8k', 'end of year', '2024'],
+                'markets': [],
+                'description': '以太坊价格水平',
+                'mutual_exclusive': False,
+                'expected_total_probability': 0.8
+            },
+            'crypto_regulation': {
+                'keywords': ['crypto', 'bitcoin', 'etf', 'sec', 'approval', 'regulation', 'ban', 'china', 'us'],
+                'exclusion_patterns': ['approve', 'reject', 'delay', 'implement', '2024'],
+                'markets': [],
+                'description': '加密货币监管',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
             
-            # 经济数据 - 按数据类型分组
+            # 经济数据 - 扩展分组
             'economic_inflation': {
-                'keywords': ['inflation', 'CPI', 'price index', 'year over year'],
-                'exclusion_patterns': ['above', 'below', 'higher', 'lower'],
+                'keywords': ['inflation', 'CPI', 'price index', 'year over year', 'consumer prices'],
+                'exclusion_patterns': ['above', 'below', 'higher', 'lower', '3%', '4%', '5%'],
                 'markets': [],
                 'description': '通胀数据预测',
                 'mutual_exclusive': True,
                 'expected_total_probability': 1.0
             },
             'economic_employment': {
-                'keywords': ['employment', 'jobs', 'unemployment', 'payroll'],
-                'exclusion_patterns': ['above', 'below', 'higher', 'lower'],
+                'keywords': ['employment', 'jobs', 'unemployment', 'payroll', 'rate'],
+                'exclusion_patterns': ['above', 'below', 'higher', 'lower', '4%', '5%', '6%'],
                 'markets': [],
                 'description': '就业数据预测',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'economic_gdp': {
+                'keywords': ['gdp', 'growth', 'recession', 'economy', 'quarterly', 'annual'],
+                'exclusion_patterns': ['positive', 'negative', 'above', 'below', '2%', '3%', '4%'],
+                'markets': [],
+                'description': 'GDP增长预测',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            
+            # 社交媒体趋势 - 新增分组
+            'social_media_trends': {
+                'keywords': ['tiktok', 'twitter', 'instagram', 'facebook', 'followers', 'users', 'downloads'],
+                'exclusion_patterns': ['billion', 'million', 'decline', 'growth', '2024'],
+                'markets': [],
+                'description': '社交媒体趋势',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            
+            # 气候环境 - 新增分组
+            'climate_weather': {
+                'keywords': ['climate', 'weather', 'temperature', 'hurricane', 'el nino', 'la nina', '2024'],
+                'exclusion_patterns': ['record', 'above', 'below', 'average', 'hot', 'cold'],
+                'markets': [],
+                'description': '气候天气事件',
                 'mutual_exclusive': True,
                 'expected_total_probability': 1.0
             }
@@ -206,13 +362,13 @@ class ProbabilityArbitrageStrategy:
                             confidence=opportunity.confidence,
                             market_details=market_details
                         )
-                        self.notification_service.info(
+                        """ self.notification_service.info(
                             "套利详情", 
                             f"类型: {opportunity.type}\n"
                             f"预期收益: {opportunity.expected_return:.2%}\n"
                             f"置信度: {opportunity.confidence:.2f}\n"
                             f"动作: {opportunity.action}"
-                        )
+                        ) """
                     
                     if self.enable_trading:
                         self.execute_arbitrage(opportunity)
@@ -231,27 +387,106 @@ class ProbabilityArbitrageStrategy:
                 time.sleep(60)
     
     def update_mutually_exclusive_groups(self, markets: List[Dict]):
-        """智能更新互斥事件组"""
-        # 清空现有市场
-        for group in self.mutually_exclusive_groups.values():
-            group['markets'] = []
+        """智能更新互斥事件组 - 增强版本"""
+        self.logger.info(f"开始更新互斥事件组，共 {len(markets)} 个市场")
         
-        # 智能分类市场
-        for market in markets:
-            question = market.get('question', '').lower()
+        # 1. 计算覆盖率
+        coverage_stats = self.calculate_coverage_rate(markets)
+        self.logger.info(f"当前市场覆盖率: {coverage_stats['overall_coverage']:.1%}")
+        
+        for category, stats in coverage_stats['by_category'].items():
+            if stats['total'] > 0:
+                self.logger.info(f"  {category}: {stats['covered']}/{stats['total']} ({stats['coverage_rate']:.1%})")
+        
+        # 2. 学习新的关键词模式
+        self.learn_keywords_from_markets(markets)
+        
+        # 3. 使用自适应分组算法
+        final_groups = self.adaptive_grouping(markets)
+        
+        # 4. 更新互斥组
+        for group_name, group_data in final_groups.items():
+            if group_name in self.mutually_exclusive_groups:
+                # 更新现有组 - group_data可能是列表或字典
+                if isinstance(group_data, list):
+                    self.mutually_exclusive_groups[group_name]['markets'] = group_data
+                elif isinstance(group_data, dict) and 'markets' in group_data:
+                    self.mutually_exclusive_groups[group_name]['markets'] = group_data['markets']
+            elif isinstance(group_data, dict) and 'is_dynamic' in group_data and group_data['is_dynamic']:
+                # 添加动态组 - group_data是字典
+                self.mutually_exclusive_groups[group_name] = group_data
+        
+        # 5. 验证互斥性
+        self.validate_mutual_exclusivity()
+        
+        # 6. 统计结果
+        total_grouped = sum(len(group['markets']) for group in self.mutually_exclusive_groups.values())
+        self.logger.info(f"分组完成: {total_grouped}/{len(markets)} 个市场被分组")
+        
+        # 7. 显示分组统计
+        for group_name, group_info in self.mutually_exclusive_groups.items():
+            markets_count = len(group_info['markets'])
+            if markets_count > 0:
+                self.logger.debug(f"  {group_name}: {markets_count} 个市场 - {group_info['description']}")
+    
+    def find_arbitrage_opportunities(self) -> List[ArbitrageOpportunity]:
+        """发现套利机会 - 增强版本"""
+        opportunities = []
+        
+        self.logger.debug(f"检查 {len(self.mutually_exclusive_groups)} 个互斥事件组")
+        
+        for group_name, group_info in self.mutually_exclusive_groups.items():
+            markets = group_info['markets']
             
-            # 计算市场质量分数
-            market_quality = self.calculate_market_quality(market)
-            if market_quality < 0.1:  # 降低质量门槛
+            # 跳过动态组的特殊处理
+            is_dynamic = group_info.get('is_dynamic', False)
+            if is_dynamic:
+                self.logger.debug(f"跳过动态组 {group_name}")
                 continue
             
-            # 智能匹配到最合适的组
-            best_group = self.find_best_matching_group(question, market)
-            if best_group:
-                self.mutually_exclusive_groups[best_group]['markets'].append(market)
+            self.logger.debug(f"组 {group_name}: {len(markets)} 个市场")
+            
+            if len(markets) < self.arbitrage_thresholds['min_markets_count']:
+                self.logger.warning(f"市场数量不足，跳过组 {group_name}")
+                continue
+            
+            if len(markets) > self.arbitrage_thresholds['max_markets_count']:
+                self.logger.warning(f"市场数量过多，跳过组 {group_name}")
+                continue
+            
+            # 计算概率总和
+            total_probability = self.calculate_total_probability(markets)
+            self.logger.debug(f"概率总和: {total_probability:.3f}")
+            
+            # 发现概率套利
+            prob_arbitrage = self.find_probability_arbitrage(markets, total_probability, group_info)
+            if prob_arbitrage:
+                opportunities.append(prob_arbitrage)
+                # 输出详细的市场信息
+                market_details = []
+                for market in markets[:3]:  # 只显示前3个市场避免日志过长
+                    market_id = market.get('id', 'N/A')[:8]  # 只显示前8个字符
+                    question = market.get('question', 'N/A')[:40]  # 只显示前40个字符
+                    market_details.append(f"{market_id}({question})")
+                
+                markets_summary = ", ".join(market_details)
+                if len(markets) > 3:
+                    markets_summary += f" ... (+{len(markets)-3} more)"
+                
+                self.logger.info(f"发现套利机会: {prob_arbitrage.description}")
+                self.logger.info(f"  包含市场: {markets_summary}")
+            else:
+                self.logger.debug("未发现套利机会")
+            
+            # 发现跨市场套利
+            cross_arbitrage = self.find_cross_market_arbitrage(markets, group_info)
+            if cross_arbitrage:
+                opportunities.append(cross_arbitrage)
         
-        # 验证互斥性
-        self.validate_mutual_exclusivity()
+        # 按预期收益排序
+        opportunities.sort(key=lambda opportunity: opportunity.expected_return, reverse=True)
+        
+        return opportunities
     
     def calculate_market_quality(self, market: Dict) -> float:
         """计算市场质量分数"""
@@ -285,28 +520,406 @@ class ProbabilityArbitrageStrategy:
         return min(quality, 1.0)
     
     def find_best_matching_group(self, question: str, market: Dict) -> Optional[str]:
-        """找到最佳匹配的组"""
+        """找到最佳匹配的组 - 智能算法版本"""
         best_group = None
         best_score = 0.0
         
+        # 1. 传统关键词匹配 (40%权重)
+        keyword_scores = {}
         for group_name, group_info in self.mutually_exclusive_groups.items():
-            score = 0.0
+            keyword_score = self.calculate_keyword_score(question, group_info)
+            keyword_scores[group_name] = keyword_score
             
-            # 关键词匹配分数 (60%)
-            keyword_matches = sum(1 for kw in group_info['keywords'] if kw in question)
-            keyword_score = (keyword_matches / len(group_info['keywords'])) * 0.6
-            
-            # 排除模式匹配分数 (40%)
-            exclusion_matches = sum(1 for pattern in group_info['exclusion_patterns'] if pattern in question)
-            exclusion_score = (exclusion_matches / len(group_info['exclusion_patterns'])) * 0.4
-            
-            total_score = keyword_score + exclusion_score
-            
-            if total_score > best_score and total_score > 0.1:  # 降低匹配阈值
-                best_score = total_score
+            if keyword_score > best_score and keyword_score > 0.1:
+                best_score = keyword_score
                 best_group = group_name
+            elif keyword_score == best_score and keyword_score > 0.1:
+                # 如果分数相同，优先选择更具体的分组
+                if best_group is None or self.is_more_specific_group(group_name, best_group):
+                    best_group = group_name
+        
+        # 2. 语义相似度匹配 (35%权重)
+        semantic_scores = self.calculate_semantic_similarity_scores(question)
+        for group_name, semantic_score in semantic_scores.items():
+            combined_score = keyword_scores.get(group_name, 0) * 0.4 + semantic_score * 0.35
+            
+            if combined_score > best_score and combined_score > 0.15:
+                best_score = combined_score
+                best_group = group_name
+            elif combined_score == best_score and combined_score > 0.15:
+                # 如果分数相同，优先选择更具体的分组
+                if best_group is None or self.is_more_specific_group(group_name, best_group):
+                    best_group = group_name
+        
+        # 3. 市场质量调整 (25%权重)
+        if best_group:
+            market_quality = self.calculate_market_quality(market)
+            adjusted_score = best_score * (0.75 + market_quality * 0.25)
+            
+            if adjusted_score > 0.2:
+                return best_group
         
         return best_group
+    
+    def is_more_specific_group(self, group1: str, group2: str) -> bool:
+        """判断哪个分组更具体"""
+        # 定义分组的具体性优先级
+        specificity_priority = {
+            'sports_soccer': 10,      # 最具体的足球分组
+            'sports_nfl': 8,           # 美式足球
+            'sports_nba': 8,           # 篮球
+            'election_2024_winner': 5,   # 选举
+            'crypto_btc_levels': 3,       # 加密货币
+            'entertainment_awards': 2,    # 娱乐奖项
+            'tech_stock_price': 1,         # 科技股价
+        }
+        
+        priority1 = specificity_priority.get(group1, 0)
+        priority2 = specificity_priority.get(group2, 0)
+        
+        return priority1 > priority2
+    
+    def calculate_keyword_score(self, question: str, group_info: Dict) -> float:
+        """计算关键词匹配分数"""
+        score = 0.0
+        
+        # 检查是否是动态组（没有keywords键）
+        if 'keywords' not in group_info:
+            return 0.0
+        
+        # 关键词匹配分数 (60%)
+        keyword_matches = sum(1 for kw in group_info['keywords'] if kw in question)
+        keyword_score = (keyword_matches / len(group_info['keywords'])) * 0.6
+        
+        # 排除模式匹配分数 (40%)
+        exclusion_patterns = group_info.get('exclusion_patterns', [])
+        if exclusion_patterns:
+            exclusion_matches = sum(1 for pattern in exclusion_patterns if pattern in question)
+            exclusion_score = (exclusion_matches / len(exclusion_patterns)) * 0.4
+        else:
+            exclusion_score = 0.0
+        
+        return keyword_score + exclusion_score
+    
+    def calculate_semantic_similarity_scores(self, question: str) -> Dict[str, float]:
+        """计算语义相似度分数"""
+        # 简化的语义匹配算法（实际应用中可以使用词向量模型）
+        semantic_groups = {
+            'entertainment_awards': ['award', 'oscar', 'grammy', 'emmy', 'music', 'movie', 'film', 'winner', 'nominee', 'ceremony'],
+            'entertainment_box_office': ['box office', 'movie', 'film', 'revenue', 'opening', 'gross', 'ticket', 'theater', 'cinema'],
+            'tech_stock_price': ['stock', 'price', 'share', 'market cap', 'trading', 'wall street', 'nasdaq', 'company value'],
+            'ai_development': ['artificial intelligence', 'machine learning', 'neural network', 'automation', 'robotics', 'algorithm'],
+            'international_relations': ['diplomacy', 'foreign policy', 'international', 'treaty', 'alliance', 'summit', 'negotiation'],
+            'geopolitical_conflicts': ['war', 'conflict', 'military', 'tension', 'crisis', 'dispute', 'battle'],
+            'climate_weather': ['temperature', 'weather', 'climate', 'environment', 'global warming', 'carbon', 'emissions']
+        }
+        
+        question_words = set(question.lower().split())
+        semantic_scores = {}
+        
+        for group_name, semantic_keywords in semantic_groups.items():
+            semantic_set = set(semantic_keywords)
+            # 计算Jaccard相似度
+            intersection = len(question_words & semantic_set)
+            union = len(question_words | semantic_set)
+            
+            if union > 0:
+                similarity = intersection / union
+                semantic_scores[group_name] = similarity
+            else:
+                semantic_scores[group_name] = 0.0
+        
+        return semantic_scores
+    
+    def learn_keywords_from_markets(self, markets: List[Dict]):
+        """从市场中学习新的关键词模式"""
+        # 分析高频词汇
+        word_frequency = {}
+        category_keywords = {}
+        
+        for market in markets:
+            question = market.get('question', '').lower()
+            words = question.split()
+            
+            # 统计词频
+            for word in words:
+                if len(word) > 3:  # 过滤短词
+                    word_frequency[word] = word_frequency.get(word, 0) + 1
+            
+            # 基于现有分组分类学习
+            best_group = self.find_best_matching_group(question, market)
+            if best_group:
+                if best_group not in category_keywords:
+                    category_keywords[best_group] = []
+                
+                # 提取潜在的新关键词
+                for word in words:
+                    if (word not in self.mutually_exclusive_groups[best_group]['keywords'] and
+                        word_frequency.get(word, 0) > 2):  # 出现频率较高的词
+                        category_keywords[best_group].append(word)
+        
+        # 更新关键词库（这里可以设置阈值避免误添加）
+        for group_name, new_keywords in category_keywords.items():
+            if len(new_keywords) > 0:
+                self.logger.info(f"为组 {group_name} 发现潜在新关键词: {new_keywords[:5]}")
+                
+                # 可以选择性地添加新关键词
+                # self.mutually_exclusive_groups[group_name]['keywords'].extend(new_keywords[:3])
+    
+    def adaptive_grouping(self, markets: List[Dict]) -> Dict[str, List[Dict]]:
+        """自适应分组算法"""
+        # 1. 传统分组
+        traditional_groups = {}
+        for group_name in self.mutually_exclusive_groups:
+            traditional_groups[group_name] = []
+        
+        # 2. 为每个市场分配到最佳组
+        unassigned_markets = []
+        
+        for market in markets:
+            question = market.get('question', '').lower()
+            market_quality = self.calculate_market_quality(market)
+            
+            if market_quality < 0.1:
+                continue
+            
+            best_group = self.find_best_matching_group(question, market)
+            
+            if best_group:
+                traditional_groups[best_group].append(market)
+            else:
+                unassigned_markets.append(market)
+        
+        # 3. 处理未分配的市场 - 尝试动态分组
+        dynamic_groups = self.create_dynamic_groups(unassigned_markets)
+        
+        # 4. 合并结果
+        final_groups = {**traditional_groups, **dynamic_groups}
+        
+        return final_groups
+    
+    def create_dynamic_groups(self, unassigned_markets: List[Dict]) -> Dict[str, List[Dict]]:
+        """为未分配的市场创建动态分组"""
+        dynamic_groups = {}
+        
+        if len(unassigned_markets) < 2:
+            return dynamic_groups
+        
+        # 功能性词汇过滤
+        function_words = {
+            'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can',
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'by', 'for',
+            'with', 'without', 'to', 'from', 'up', 'down', 'out', 'off', 'over',
+            'under', 'above', 'below', 'between', 'among', 'through', 'during',
+            'before', 'after', 'since', 'until', 'while', 'when', 'where', 'why',
+            'how', 'what', 'which', 'who', 'whom', 'whose', 'this', 'that',
+            'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
+            'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its',
+            'our', 'their', 'be', 'been', 'being', 'am', 'is', 'are', 'was',
+            'were', 'have', 'has', 'had', 'do', 'does', 'did', 'of'
+        }
+        
+        def filter_question_words(question: str) -> set:
+            """过滤问题中的功能性词汇"""
+            import re
+            words = question.lower().split()
+            filtered = set()
+            for word in words:
+                clean_word = re.sub(r'[^\w]', '', word)
+                if clean_word not in function_words and not clean_word.isdigit() and clean_word:
+                    filtered.add(clean_word)
+            return filtered
+        
+        # 改进的聚类算法 - 基于语义词汇相似度
+        market_clusters = {}
+        
+        for i, market1 in enumerate(unassigned_markets):
+            question1 = market1.get('question', '')
+            words1 = filter_question_words(question1)
+            
+            cluster_id = None
+            max_similarity = 0.0
+            
+            # 检查是否应该加入现有聚类
+            for existing_cluster_id, cluster_markets in market_clusters.items():
+                for market2 in cluster_markets:
+                    question2 = market2.get('question', '')
+                    words2 = filter_question_words(question2)
+                    
+                    # 计算语义相似度
+                    intersection = len(words1 & words2)
+                    union = len(words1 | words2)
+                    
+                    if union > 0:
+                        similarity = intersection / union
+                        
+                        # 提高相似度阈值，确保只有真正相关的市场才会被分组
+                        if similarity > max_similarity and similarity > 0.4:  # 提高到0.4
+                            max_similarity = similarity
+                            cluster_id = existing_cluster_id
+            
+            if cluster_id is not None:
+                market_clusters[cluster_id].append(market1)
+            else:
+                # 创建新聚类
+                new_cluster_id = f"dynamic_{len(market_clusters)}"
+                market_clusters[new_cluster_id] = [market1]
+        
+        # 转换为动态组格式，添加额外的验证
+        for cluster_id, cluster_markets in market_clusters.items():
+            if len(cluster_markets) >= 2:  # 至少需要2个市场
+                # 验证这个聚类是否真正有意义
+                if self.validate_dynamic_cluster(cluster_markets):
+                    dynamic_groups[cluster_id] = {
+                        'markets': cluster_markets,
+                        'description': f'动态分组: {cluster_id}',
+                        'mutual_exclusive': True,
+                        'expected_total_probability': 1.0,
+                        'is_dynamic': True
+                    }
+        
+        return dynamic_groups
+    
+    def validate_dynamic_cluster(self, cluster_markets: List[Dict]) -> bool:
+        """验证动态聚类是否有意义"""
+        if len(cluster_markets) < 2:
+            return False
+        
+        # 检查是否有足够的语义关联
+        questions = [market.get('question', '') for market in cluster_markets]
+        
+        # 计算所有市场对之间的平均相似度
+        similarities = []
+        for i in range(len(questions)):
+            for j in range(i + 1, len(questions)):
+                similarity = self.calculate_semantic_similarity(questions[i], questions[j])
+                similarities.append(similarity)
+        
+        if not similarities:
+            return False
+        
+        avg_similarity = sum(similarities) / len(similarities)
+        
+        # 只有平均相似度足够高才认为是有效的聚类
+        return avg_similarity > 0.3  # 平均相似度阈值
+    
+    def calculate_semantic_similarity(self, question1: str, question2: str) -> float:
+        """计算两个问题的语义相似度"""
+        # 使用改进的词汇过滤
+        function_words = {
+            'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can',
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'by', 'for',
+            'with', 'without', 'to', 'from', 'up', 'down', 'out', 'off', 'over',
+            'under', 'above', 'below', 'between', 'among', 'through', 'during',
+            'before', 'after', 'since', 'until', 'while', 'when', 'where', 'why',
+            'how', 'what', 'which', 'who', 'whom', 'whose', 'this', 'that',
+            'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
+            'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its',
+            'our', 'their', 'be', 'been', 'being', 'am', 'is', 'are', 'was',
+            'were', 'have', 'has', 'had', 'do', 'does', 'did', 'of'
+        }
+        
+        import re
+        def filter_words(question: str) -> set:
+            words = question.lower().split()
+            filtered = set()
+            for word in words:
+                clean_word = re.sub(r'[^\w]', '', word)
+                if clean_word not in function_words and not clean_word.isdigit() and clean_word:
+                    filtered.add(clean_word)
+            return filtered
+        
+        words1 = filter_words(question1)
+        words2 = filter_words(question2)
+        
+        if not words1 or not words2:
+            return 0.0
+        
+        intersection = len(words1 & words2)
+        union = len(words1 | words2)
+        
+        return intersection / union if union > 0 else 0.0
+    
+    def calculate_coverage_rate(self, markets: List[Dict]) -> Dict[str, float]:
+        """计算各类市场的覆盖率"""
+        total_markets = len(markets)
+        if total_markets == 0:
+            return {'overall_coverage': 0.0, 'by_category': {}}
+        
+        category_stats = {}
+        covered_markets = 0
+        
+        # 定义分类映射
+        category_mapping = {
+            'politics': ['election_2024_winner', 'election_2024_party'],
+            'economy': ['fed_rate_decision', 'fed_rate_size', 'economic_inflation', 'economic_employment', 'economic_gdp'],
+            'entertainment': ['entertainment_awards', 'entertainment_box_office', 'entertainment_streaming'],
+            'technology': ['tech_stock_price', 'tech_product_launch', 'tech_earnings'],
+            'ai': ['ai_development', 'ai_regulation', 'ai_companies'],
+            'international': ['international_relations', 'geopolitical_conflicts', 'global_economy'],
+            'sports': ['sports_nba', 'sports_nfl', 'sports_soccer'],
+            'crypto': ['crypto_btc_levels', 'crypto_eth_levels', 'crypto_regulation'],
+            'social_media': ['social_media_trends'],
+            'climate': ['climate_weather']
+        }
+        
+        # 初始化分类统计
+        for category in category_mapping:
+            category_stats[category] = {'total': 0, 'covered': 0}
+        
+        # 统计每个分类的覆盖率
+        for market in markets:
+            question = market.get('question', '').lower()
+            market_category = self.classify_market_category(question, category_mapping)
+            
+            if market_category:
+                category_stats[market_category]['total'] += 1
+                
+                # 检查是否被覆盖
+                is_covered = False
+                for group_name in category_mapping[market_category]:
+                    if self.is_market_in_group(market, group_name):
+                        is_covered = True
+                        break
+                
+                if is_covered:
+                    category_stats[market_category]['covered'] += 1
+                    covered_markets += 1
+        
+        # 计算覆盖率
+        for category in category_stats:
+            stats = category_stats[category]
+            if stats['total'] > 0:
+                stats['coverage_rate'] = stats['covered'] / stats['total']
+            else:
+                stats['coverage_rate'] = 0.0
+        
+        return {
+            'overall_coverage': covered_markets / total_markets,
+            'by_category': category_stats
+        }
+    
+    def classify_market_category(self, question: str, category_mapping: Dict[str, List[str]]) -> Optional[str]:
+        """分类市场到具体类别"""
+        for category, group_names in category_mapping.items():
+            for group_name in group_names:
+                if group_name in self.mutually_exclusive_groups:
+                    group_info = self.mutually_exclusive_groups[group_name]
+                    # 检查是否是动态组（没有keywords键）
+                    if 'keywords' in group_info:
+                        if any(keyword in question for keyword in group_info['keywords']):
+                            return category
+        return None
+    
+    def is_market_in_group(self, market: Dict, group_name: str) -> bool:
+        """检查市场是否在指定组中"""
+        if group_name not in self.mutually_exclusive_groups:
+            return False
+        
+        group_markets = self.mutually_exclusive_groups[group_name]['markets']
+        market_id = market.get('id')
+        
+        return any(m.get('id') == market_id for m in group_markets)
     
     def validate_mutual_exclusivity(self):
         """验证互斥性"""
@@ -339,14 +952,355 @@ class ProbabilityArbitrageStrategy:
             group_info['markets'] = filtered_markets
     
     def check_market_overlap(self, question1: str, question2: str) -> bool:
-        """检查两个市场是否重叠"""
-        # 简单的重叠检查
-        words1 = set(question1.split())
-        words2 = set(question2.split())
+        """检查两个市场是否重叠（改进版本）"""
+        # 移除标点符号并转换为小写
+        import re
+        q1 = re.sub(r'[^\w\s]', ' ', question1.lower()).strip()
+        q2 = re.sub(r'[^\w\s]', ' ', question2.lower()).strip()
         
-        # 如果重叠度超过50%，认为不互斥
+        # 过滤掉功能性词汇
+        function_words = {
+            'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can',
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'by', 'for',
+            'with', 'without', 'to', 'from', 'up', 'down', 'out', 'off', 'over',
+            'under', 'above', 'below', 'between', 'among', 'through', 'during',
+            'before', 'after', 'since', 'until', 'while', 'when', 'where', 'why',
+            'how', 'what', 'which', 'who', 'whom', 'whose', 'this', 'that',
+            'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
+            'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its',
+            'our', 'their', 'be', 'been', 'being', 'am', 'is', 'are', 'was',
+            'were', 'have', 'has', 'had', 'do', 'does', 'did', 'of'
+        }
+        
+        # 过滤掉数字（年份等）
+        def filter_words(words):
+            filtered = []
+            for word in words:
+                # 移除标点符号后检查
+                clean_word = re.sub(r'[^\w]', '', word)
+                if clean_word not in function_words and not clean_word.isdigit() and clean_word:
+                    filtered.append(clean_word)
+            return filtered
+        
+        words1 = set(filter_words(q1.split()))
+        words2 = set(filter_words(q2.split()))
+        
+        # 基础词汇重叠检查
+        if len(words1 | words2) == 0:
+            return True
+        
         overlap = len(words1 & words2) / len(words1 | words2)
-        return overlap > 0.5
+        print(f'过滤后词汇重叠度: {overlap:.2f}')
+        print(f'过滤后共同词汇: {words1 & words2}')
+        
+        # 对于加密货币市场，降低重叠度阈值，因为它们经常有相似的关键词
+        if self.is_crypto_market(question1) and self.is_crypto_market(question2):
+            if overlap > 0.2:  # 加密货币市场使用更低的阈值
+                return self.are_mutually_exclusive_crypto_markets(question1, question2)
+            return False
+        
+        # 如果重叠度很低，认为是互斥的
+        if overlap < 0.3:
+            return False
+        
+        # 如果重叠度很高，需要进一步检查市场类型
+        if overlap > 0.5:
+            # 检查是否为体育博彩市场
+            if self.is_sports_market(question1) and self.is_sports_market(question2):
+                return self.are_mutually_exclusive_sports_markets(question1, question2)
+            
+            # 检查是否为奖项市场
+            if self.is_award_market(question1) and self.is_award_market(question2):
+                return self.are_mutually_exclusive_award_markets(question1, question2)
+            
+            # 其他情况，保守处理
+            return True
+        
+        # 中等重叠度，保守处理
+        return overlap > 0.6
+    
+    def is_sports_market(self, question: str) -> bool:
+        """检查是否为体育市场"""
+        question_lower = question.lower()
+        sports_keywords = [
+            'nba', 'nfl', 'mlb', 'nhl', 'soccer', 'football', 'basketball',
+            'baseball', 'hockey', 'tennis', 'golf', 'boxing', 'mma', 'ufc',
+            'lakers', 'warriors', 'celtics', 'heat', 'spurs', 'bulls',
+            'timberwolves', 'thunder', 'jazz', 'blazers', 'clippers'
+        ]
+        return any(keyword in question_lower for keyword in sports_keywords)
+    
+    def is_award_market(self, question: str) -> bool:
+        """检查是否为奖项市场"""
+        question_lower = question.lower()
+        award_keywords = [
+            'academy awards', 'oscar', 'oscars', 'golden globe', 'emmy', 'grammy',
+            'best picture', 'best actor', 'best actress', 'best director',
+            'best supporting actor', 'best supporting actress', 'best screenplay'
+        ]
+        return any(keyword in question_lower for keyword in award_keywords)
+    
+    def is_crypto_market(self, question: str) -> bool:
+        """检查是否为加密货币市场"""
+        question_lower = question.lower()
+        crypto_keywords = [
+            'bitcoin', 'btc', 'ethereum', 'eth', 'crypto', 'cryptocurrency',
+            'dogecoin', 'doge', 'solana', 'sol', 'cardano', 'ada'
+        ]
+        return any(keyword in question_lower for keyword in crypto_keywords)
+    
+    def are_mutually_exclusive_crypto_markets(self, question1: str, question2: str) -> bool:
+        """检查两个加密货币市场是否真正互斥"""
+        q1 = question1.lower()
+        q2 = question2.lower()
+        
+        # 提取价格目标
+        def extract_price_target(question):
+            import re
+            # 查找价格数字
+            prices = re.findall(r'\$?([0-9,]+)', question)
+            if prices:
+                try:
+                    # 移除逗号并转换为整数
+                    price = int(prices[0].replace(',', ''))
+                    return price
+                except:
+                    pass
+            return None
+        
+        price1 = extract_price_target(question1)
+        price2 = extract_price_target(question2)
+        
+        if price1 and price2:
+            # 如果一个价格目标明显高于另一个，可能存在包含关系
+            if price1 > price2 * 1.5:  # 价格1是价格2的1.5倍以上
+                return False  # 不互斥（包含关系）
+            elif price2 > price1 * 1.5:  # 价格2是价格1的1.5倍以上
+                return False  # 不互斥（包含关系）
+            
+            # 检查是否为相同价格目标的不同表述
+            if abs(price1 - price2) / max(price1, price2) < 0.1:  # 价格相差10%以内
+                return True  # 可能互斥（相似目标）
+            
+            # 检查是否为相反方向的价格预测
+            # 例如："above $X" vs "below $X"
+            if 'above' in q1 and 'below' in q2 and price1 == price2:
+                return True  # 互斥（相反方向）
+            elif 'below' in q1 and 'above' in q2 and price1 == price2:
+                return True  # 互斥（相反方向）
+        
+        # 检查是否为不同时间范围的市场
+        time_keywords = ['january', 'february', 'march', 'april', 'may', 'june',
+                       'july', 'august', 'september', 'october', 'november', 'december',
+                       'q1', 'q2', 'q3', 'q4', '2024', '2025', '2026']
+        
+        q1_times = [word for word in time_keywords if word in q1]
+        q2_times = [word for word in time_keywords if word in q2]
+        
+        if q1_times and q2_times and set(q1_times) != set(q2_times):
+            return False  # 不同时间范围，不互斥
+        
+        # 其他情况保守处理
+        return True
+    
+    def are_mutually_exclusive_sports_markets(self, question1: str, question2: str) -> bool:
+        """检查两个体育市场是否真正互斥"""
+        q1 = question1.lower()
+        q2 = question2.lower()
+        
+        # 提取队伍名称（简化版本）
+        def extract_teams(question):
+            # 常见体育队伍名称
+            teams = [
+                # NBA队伍
+                'lakers', 'warriors', 'celtics', 'heat', 'spurs', 'bulls', 
+                'nuggets', 'suns', 'bucks', 'sixers', 'nets', 'mavericks',
+                'timberwolves', 'thunder', 'jazz', 'blazers', 'clippers',
+                'grizzlies', 'pelicans', 'kings', 'hornets', 'magic',
+                'pacers', 'pistons', 'raptors', 'wizards', 'hawks',
+                'knicks', 'cavaliers',
+                
+                # NFL队伍
+                'chiefs', 'eagles', '49ers', 'cowboys', 'patriots', 'packers',
+                'bills', 'bengals', 'ravens', 'steelers', 'browns',
+                
+                # 足球队
+                'galatasaray', 'glimt', 'bodo', 'barcelona', 'real madrid', 
+                'manchester', 'liverpool', 'chelsea', 'arsenal', 'bayern',
+                'psg', 'juventus', 'ac milan', 'inter', 'napoli', 'roma',
+                'dortmund', 'leverkusen', 'ajax', 'porto', 'benfica',
+                
+                # 其他常见队伍
+                'yankees', 'red sox', 'dodgers', 'giants', 'cardinals'
+            ]
+            
+            found_teams = []
+            for team in teams:
+                if team in question:
+                    found_teams.append(team)
+            return found_teams
+        
+        teams1 = extract_teams(q1)
+        teams2 = extract_teams(q2)
+        
+        # 如果涉及不同的队伍，可能是互斥的
+        if set(teams1) != set(teams2):
+            # 检查是否为同一赛事的不同竞争者
+            if self.are_same_event_competitors(question1, question2, teams1, teams2):
+                return True  # 同一赛事的不同竞争者，互斥
+            else:
+                return False  # 不同赛事，可能不互斥
+        
+        # 如果涉及相同队伍，检查市场类型
+        if set(teams1) == set(teams2) and len(teams1) > 0:
+            # 检查是否为不同类型的投注
+            types1 = []
+            types2 = []
+            
+            # 胜负市场关键词
+            if any(word in q1 for word in ['win', 'winner', 'beat', 'defeat', 'vs', 'victory']):
+                types1.append('moneyline')
+            if any(word in q2 for word in ['win', 'winner', 'beat', 'defeat', 'vs', 'victory']):
+                types2.append('moneyline')
+            
+            # 大小分市场关键词
+            if any(word in q1 for word in ['over', 'under', 'o/u', 'total', 'points', 'score']):
+                types1.append('total_points')
+            if any(word in q2 for word in ['over', 'under', 'o/u', 'total', 'points', 'score']):
+                types2.append('total_points')
+            
+            # 让分市场关键词
+            if any(word in q1 for word in ['spread', 'handicap', '-', '+']):
+                types1.append('spread')
+            if any(word in q2 for word in ['spread', 'handicap', '-', '+']):
+                types2.append('spread')
+            
+            # 如果是不同类型的投注市场，则不互斥
+            if types1 and types2 and set(types1) != set(types2):
+                return False
+        
+        # 默认情况下，认为是重叠的（不互斥）
+        return True
+    
+    def are_same_event_competitors(self, question1: str, question2: str, teams1: list, teams2: list) -> bool:
+        """检查是否为同一赛事的不同竞争者"""
+        # 提取赛事信息
+        def extract_event_info(question):
+            q = question.lower()
+            
+            # 查找年份
+            import re
+            year_match = re.search(r'20(\d{2})', q)
+            year = year_match.group(1) if year_match else None
+            
+            # 查找赛事类型
+            event_type = None
+            if 'champion' in q or 'championship' in q or 'title' in q:
+                event_type = 'championship'
+            elif 'cup' in q:
+                event_type = 'cup'
+            elif 'league' in q:
+                event_type = 'league'
+            elif 'super bowl' in q:
+                event_type = 'super_bowl'
+            elif 'world cup' in q:
+                event_type = 'world_cup'
+            
+            return {
+                'year': year,
+                'event_type': event_type,
+                'has_competition_keywords': any(word in q for word in ['vs', 'against', 'beat', 'defeat', 'win'])
+            }
+        
+        info1 = extract_event_info(question1)
+        info2 = extract_event_info(question2)
+        
+        # 如果都有年份且年份相同，并且都是冠军/锦标赛类型
+        if (info1['year'] and info2['year'] and 
+            info1['year'] == info2['year'] and
+            info1['event_type'] and info2['event_type'] and
+            info1['event_type'] == info2['event_type'] and
+            info1['has_competition_keywords'] and info2['has_competition_keywords']):
+            
+            # 检查是否有竞争关键词（vs, against, beat, defeat等）
+            # 如果没有明确的竞争关键词，可能是同一赛事的不同参与者
+            return True
+        
+        return False
+    
+    def are_mutually_exclusive_award_markets(self, question1: str, question2: str) -> bool:
+        """检查两个奖项市场是否真正互斥"""
+        q1 = question1.lower()
+        q2 = question2.lower()
+        
+        # 提取奖项类别
+        def extract_award_category(question):
+            categories = []
+            
+            # 奥斯卡奖项类别
+            if 'best picture' in question:
+                categories.append('best_picture')
+            if 'best actor' in question:
+                categories.append('best_actor')
+            if 'best actress' in question:
+                categories.append('best_actress')
+            if 'best supporting actor' in question:
+                categories.append('best_supporting_actor')
+            if 'best supporting actress' in question:
+                categories.append('best_supporting_actress')
+            if 'best director' in question:
+                categories.append('best_director')
+            if 'best screenplay' in question:
+                categories.append('best_screenplay')
+            if 'original screenplay' in question:
+                categories.append('original_screenplay')
+            if 'adapted screenplay' in question:
+                categories.append('adapted_screenplay')
+            
+            # 其他奖项
+            if 'golden globe' in question:
+                categories.append('golden_globes')
+            if 'emmy' in question:
+                categories.append('emmys')
+            if 'grammy' in question:
+                categories.append('grammys')
+            
+            return categories
+        
+        categories1 = extract_award_category(q1)
+        categories2 = extract_award_category(q2)
+        
+        # 如果是不同的奖项类别，通常不互斥
+        if categories1 and categories2 and set(categories1) != set(categories2):
+            return False
+        
+        # 如果是相同的奖项类别，检查是否为不同的提名者
+        if categories1 and categories2 and set(categories1) == set(categories2):
+            # 提取提名者/电影名称
+            def extract_nominee(question):
+                # 简化的提名者提取逻辑
+                words = question.split()
+                nominees = []
+                
+                # 查找可能的提名者（通常在 "win" 或 "at" 之前）
+                for i, word in enumerate(words):
+                    if word == 'win' and i > 0:
+                        # 查找前面的电影/人名
+                        for j in range(max(0, i-5), i):
+                            if words[j] not in ['will', 'the', 'a', 'an', 'at', 'in', 'for']:
+                                nominees.append(words[j])
+                
+                return nominees
+            
+            nominees1 = extract_nominee(q1)
+            nominees2 = extract_nominee(q2)
+            
+            # 如果是不同的提名者竞争同一奖项，则互斥
+            if nominees1 and nominees2 and set(nominees1) != set(nominees2):
+                return True
+        
+        # 默认情况下，认为不互斥
+        return False
     
     def find_arbitrage_opportunities(self) -> List[ArbitrageOpportunity]:
         """发现套利机会"""
@@ -371,7 +1325,19 @@ class ProbabilityArbitrageStrategy:
             prob_arbitrage = self.find_probability_arbitrage(markets, total_probability, group_info)
             if prob_arbitrage:
                 opportunities.append(prob_arbitrage)
+                # 输出详细的市场信息
+                market_details = []
+                for market in markets[:3]:  # 只显示前3个市场避免日志过长
+                    market_id = market.get('id', 'N/A')[:8]  # 只显示前8个字符
+                    question = market.get('question', 'N/A')[:40]  # 只显示前40个字符
+                    market_details.append(f"{market_id}({question})")
+                
+                markets_summary = ", ".join(market_details)
+                if len(markets) > 3:
+                    markets_summary += f" ... (+{len(markets)-3} more)"
+                
                 self.logger.info(f"发现套利机会: {prob_arbitrage.description}")
+                self.logger.info(f"  包含市场: {markets_summary}")
             else:
                 self.logger.debug("未发现套利机会")
             
@@ -381,12 +1347,12 @@ class ProbabilityArbitrageStrategy:
                 opportunities.append(cross_arbitrage)
         
         # 按预期收益排序
-        opportunities.sort(key=lambda x: x.expected_return, reverse=True)
+        opportunities.sort(key=lambda opportunity: opportunity.expected_return, reverse=True)
         
         return opportunities
     
     def calculate_total_probability(self, markets: List[Dict]) -> float:
-        """精确计算概率总和"""
+        """精确计算概率总和 - 增强版本，考虑互斥性"""
         total_prob = 0.0
         valid_prices = []
         
@@ -402,6 +1368,36 @@ class ProbabilityArbitrageStrategy:
                     
             except Exception as e:
                 continue
+        
+        # 初始化互斥性标志
+        are_mutually_exclusive = False
+        
+        # 检查市场是否互斥
+        if len(markets) >= 2 and valid_prices:
+            # 检查所有市场对之间的互斥性
+            are_mutually_exclusive = True
+            for i in range(len(markets)):
+                for j in range(i + 1, len(markets)):
+                    q1 = markets[i].get('question', '')
+                    q2 = markets[j].get('question', '')
+                    
+                    # 使用改进的互斥性检查
+                    if self.check_market_overlap(q1, q2):
+                        # 如果重叠（不互斥），则不是完全互斥的
+                        are_mutually_exclusive = False
+                        break
+                if not are_mutually_exclusive:
+                    break
+        
+        # 如果市场是互斥的，限制总概率不超过预期值
+        if are_mutually_exclusive and len(valid_prices) >= 2:
+            # 获取预期总概率（从分组信息中）
+            expected_total = 1.0  # 默认值，互斥事件的概率总和应该是1.0
+            
+            # 如果总概率超过预期值，则限制为预期值
+            if total_prob > expected_total:
+                self.logger.debug(f"互斥市场概率超限: {total_prob:.3f} -> {expected_total:.3f}")
+                return expected_total
         
         # 基于有效价格计算加权平均
         if valid_prices:
@@ -703,8 +1699,30 @@ class ProbabilityArbitrageStrategy:
         return opportunity
     
     def find_cross_market_arbitrage(self, markets: List[Dict], group_info: Dict) -> Optional[ArbitrageOpportunity]:
-        """发现跨市场套利机会"""
+        """发现跨市场套利机会 - 增强版本，考虑互斥性"""
         if len(markets) < 2:
+            return None
+        
+        # 首先检查市场是否互斥
+        are_mutually_exclusive = False
+        if len(markets) >= 2:
+            are_mutually_exclusive = True
+            for i in range(len(markets)):
+                for j in range(i + 1, len(markets)):
+                    q1 = markets[i].get('question', '')
+                    q2 = markets[j].get('question', '')
+                    
+                    # 使用改进的互斥性检查
+                    if self.check_market_overlap(q1, q2):
+                        # 如果重叠（不互斥），则不是完全互斥的
+                        are_mutually_exclusive = False
+                        break
+                if not are_mutually_exclusive:
+                    break
+        
+        # 如果市场是互斥的，不产生跨市场套利机会
+        if are_mutually_exclusive:
+            self.logger.debug(f"跳过互斥市场的跨市场套利检查")
             return None
         
         # 计算价格差异
@@ -719,7 +1737,7 @@ class ProbabilityArbitrageStrategy:
             })
         
         # 按价格排序
-        prices.sort(key=lambda x: x['price'])
+        prices.sort(key=lambda price_item: price_item['price'])
         
         # 检查价格差异
         low_price = prices[0]
@@ -949,7 +1967,6 @@ class ProbabilityArbitrageStrategy:
         end_date = market.get('endDate')
         if end_date:
             try:
-                from datetime import datetime
                 expiry_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
                 days_to_expiry = (expiry_date - datetime.now(expiry_date.tzinfo)).days
                 
