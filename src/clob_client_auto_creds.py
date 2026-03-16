@@ -13,7 +13,8 @@ from dotenv import load_dotenv
 
 # 导入官方 SDK
 from py_clob_client import ClobClient
-from py_clob_client.clob_types import ApiCreds, BalanceAllowanceParams
+from py_clob_client.clob_types import ApiCreds, BalanceAllowanceParams, OrderArgs
+from py_clob_client.order_builder.constants import BUY, SELL
 
 load_dotenv('config/.env', override=True)
 
@@ -271,6 +272,58 @@ class ClobTradingClientAutoCreds:
                 'available': 0,
                 'error': str(e),
                 'currency': 'USDC'
+            }
+    
+    def create_order(self, token_id: str, side: str, size: float, price: float) -> Dict:
+        """创建订单
+        
+        Args:
+            token_id: 代币ID (条件代币地址)
+            side: 买卖方向 'BUY' 或 'SELL'
+            size: 订单数量
+            price: 订单价格 (0-1)
+            
+        Returns:
+            订单结果字典
+        """
+        if not self.client:
+            return {
+                'success': False,
+                'error': '客户端未初始化',
+                'order_id': None
+            }
+        
+        try:
+            print(f"📝 创建订单: {side} {size} @ {price}")
+            
+            # 确定买卖方向
+            order_side = BUY if side.upper() == 'BUY' else SELL
+            
+            # 创建订单参数
+            order_args = OrderArgs(
+                price=price,
+                size=size,
+                side=order_side,
+                token_id=token_id
+            )
+            
+            # 创建并提交订单
+            order_result = self.client.create_and_submit_order(order_args)
+            
+            print(f"✅ 订单创建成功: {order_result}")
+            
+            return {
+                'success': True,
+                'order_id': getattr(order_result, 'order_id', None),
+                'result': order_result
+            }
+            
+        except Exception as e:
+            print(f"❌ 创建订单失败: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'order_id': None
             }
     
     def get_orders(self) -> List[Dict]:

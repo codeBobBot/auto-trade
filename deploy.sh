@@ -5,7 +5,7 @@
 echo "🚀 开始部署 Polymarket 套利系统..."
 
 # 检查 Python 版本
-python3 --version
+python --version
 if [ $? -ne 0 ]; then
     echo "❌ 请先安装 Python 3.8+"
     exit 1
@@ -13,7 +13,7 @@ fi
 
 # 创建新的虚拟环境
 echo "📦 创建虚拟环境..."
-python3 -m venv venv
+python -m venv venv
 
 # 激活虚拟环境
 echo "🔧 激活虚拟环境..."

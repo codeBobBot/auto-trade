@@ -88,14 +88,78 @@ class ProbabilityArbitrageStrategy:
                 'expected_total_probability': 1.0
             },
             
-            # 娱乐文化 - 新增分组
-            'entertainment_awards': {
-                'keywords': ['award', 'oscar', 'grammy', 'emmy', 'album', 'music', 'movie', 'film', 'winner'],
-                'exclusion_patterns': ['win', 'lose', 'nominate', 'best', 'song', 'record'],
+            # 娱乐文化 - 细化分组
+            'oscar_best_picture': {
+                'keywords': ['best picture', 'picture', 'film', 'movie', 'academy awards', 'oscar'],
+                'exclusion_patterns': ['win', 'lose', 'nominate', 'best actor', 'best actress', 'best director'],
                 'markets': [],
-                'description': '娱乐奖项',
+                'description': '奥斯卡最佳影片奖',
                 'mutual_exclusive': True,
                 'expected_total_probability': 1.0
+            },
+            'oscar_best_actor': {
+                'keywords': ['best actor', 'actor', 'male lead', 'academy awards', 'oscar'],
+                'exclusion_patterns': ['win', 'lose', 'nominate', 'best actress', 'best supporting', 'best picture'],
+                'markets': [],
+                'description': '奥斯卡最佳男主角奖',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'oscar_best_actress': {
+                'keywords': ['best actress', 'actress', 'female lead', 'academy awards', 'oscar'],
+                'exclusion_patterns': ['win', 'lose', 'nominate', 'best actor', 'best supporting', 'best picture'],
+                'markets': [],
+                'description': '奥斯卡最佳女主角奖',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'oscar_best_supporting_actor': {
+                'keywords': ['best supporting actor', 'supporting actor', 'male supporting', 'academy awards', 'oscar'],
+                'exclusion_patterns': ['win', 'lose', 'nominate', 'best supporting actress', 'best actor', 'best picture'],
+                'markets': [],
+                'description': '奥斯卡最佳男配角奖',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'oscar_best_supporting_actress': {
+                'keywords': ['best supporting actress', 'supporting actress', 'female supporting', 'academy awards', 'oscar'],
+                'exclusion_patterns': ['win', 'lose', 'nominate', 'best supporting actor', 'best actress', 'best picture'],
+                'markets': [],
+                'description': '奥斯卡最佳女配角奖',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'oscar_best_director': {
+                'keywords': ['best director', 'director', 'filmmaking', 'academy awards', 'oscar'],
+                'exclusion_patterns': ['win', 'lose', 'nominate', 'best picture', 'best actor', 'best actress'],
+                'markets': [],
+                'description': '奥斯卡最佳导演奖',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'oscar_best_short_film': {
+                'keywords': ['best short film', 'short film', 'live action short', 'animated short', 'academy awards', 'oscar'],
+                'exclusion_patterns': ['win', 'lose', 'nominate', 'best picture', 'best documentary', 'feature film'],
+                'markets': [],
+                'description': '奥斯卡最佳短片奖',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            'oscar_other_categories': {
+                'keywords': ['academy awards', 'oscar', 'best screenplay', 'original screenplay', 'adapted screenplay', 'best documentary', 'best international'],
+                'exclusion_patterns': ['win', 'lose', 'nominate'],
+                'markets': [],
+                'description': '奥斯卡其他奖项',
+                'mutual_exclusive': False,  # 不同子类别可能不互斥
+                'expected_total_probability': 1.5  # 允许更高的总概率
+            },
+            'other_awards': {
+                'keywords': ['golden globe', 'emmy', 'grammy', 'bafta', 'award', 'winner'],
+                'exclusion_patterns': ['win', 'lose', 'nominate', 'oscar', 'academy awards'],
+                'markets': [],
+                'description': '其他奖项（金球奖、艾美奖、格莱美等）',
+                'mutual_exclusive': False,  # 不同奖项不互斥
+                'expected_total_probability': 2.0  # 允许更高的总概率
             },
             'entertainment_box_office': {
                 'keywords': ['box office', 'movie', 'film', 'revenue', 'opening', 'gross', 'billion'],
@@ -214,8 +278,8 @@ class ProbabilityArbitrageStrategy:
                 'exclusion_patterns': ['win', 'lose', 'draw', 'score', 'goal', 'transfer'],
                 'markets': [],
                 'description': '足球比赛结果',
-                'mutual_exclusive': True,
-                'expected_total_probability': 1.0
+                'mutual_exclusive': False,  # 不同赛事的球队不互斥，需要动态检查
+                'expected_total_probability': 0.8  # 调整预期概率
             },
             
             # 加密货币 - 扩展分组
@@ -291,16 +355,16 @@ class ProbabilityArbitrageStrategy:
             }
         }
         
-        # 优化套利阈值
+        # 优化套利阈值 - 更严格的设置
         self.arbitrage_thresholds = {
-            'high_probability': 1.01,  # 概率总和超过2%（更敏感）
-            'low_probability': 0.99,   # 概率总和低于2%（更敏感）
-            'min_return': 0.005,       # 最小预期收益0.5%（降低门槛）
-            'min_liquidity': 10000,     # 最小流动性10000 USDC（降低门槛）
-            'max_price_deviation': 0.7, # 最大价格偏差70%
+            'high_probability': 1.05,  # 概率总和超过5%（更严格）
+            'low_probability': 0.95,   # 概率总和低于5%（更严格）
+            'min_return': 0.02,        # 最小预期收益2%（提高门槛）
+            'min_liquidity': 20000,     # 最小流动性20000 USDC（提高门槛）
+            'max_price_deviation': 0.6, # 最大价格偏差60%
             'min_markets_count': 2,    # 最小市场数量
-            'max_markets_count': 15,   # 最大市场数量
-            'probability_confidence': 0.5 # 概率置信度阈值（降低）
+            'max_markets_count': 10,   # 最大市场数量（减少复杂性）
+            'probability_confidence': 0.7 # 概率置信度阈值（提高要求）
         }
         
         # 多层次风险控制参数
@@ -853,7 +917,7 @@ class ProbabilityArbitrageStrategy:
         category_mapping = {
             'politics': ['election_2024_winner', 'election_2024_party'],
             'economy': ['fed_rate_decision', 'fed_rate_size', 'economic_inflation', 'economic_employment', 'economic_gdp'],
-            'entertainment': ['entertainment_awards', 'entertainment_box_office', 'entertainment_streaming'],
+            'entertainment': ['oscar_best_picture', 'oscar_best_actor', 'oscar_best_actress', 'oscar_best_supporting_actor', 'oscar_best_supporting_actress', 'oscar_best_director', 'oscar_best_short_film', 'oscar_other_categories', 'other_awards', 'entertainment_box_office', 'entertainment_streaming'],
             'technology': ['tech_stock_price', 'tech_product_launch', 'tech_earnings'],
             'ai': ['ai_development', 'ai_regulation', 'ai_companies'],
             'international': ['international_relations', 'geopolitical_conflicts', 'global_economy'],
@@ -1016,6 +1080,17 @@ class ProbabilityArbitrageStrategy:
             # 其他情况，保守处理
             return True
         
+        # 对于体育市场，使用更宽松的阈值
+        if self.is_sports_market(question1) and self.is_sports_market(question2):
+            if overlap >= 0.3:  # 使用>=包含边界情况
+                # are_mutually_exclusive_sports_markets返回True表示互斥，False表示不互斥
+                # 但check_market_overlap需要返回True表示重叠（不互斥），False表示不重叠（互斥）
+                # 所以需要反转逻辑
+                is_exclusive = self.are_mutually_exclusive_sports_markets(question1, question2)
+                return not is_exclusive  # 反转：互斥->不重叠，不互斥->重叠
+            else:
+                return False  # 重叠度低，可能互斥（不重叠）
+        
         # 中等重叠度，保守处理
         return overlap > 0.6
     
@@ -1023,10 +1098,28 @@ class ProbabilityArbitrageStrategy:
         """检查是否为体育市场"""
         question_lower = question.lower()
         sports_keywords = [
+            # 体育项目
             'nba', 'nfl', 'mlb', 'nhl', 'soccer', 'football', 'basketball',
             'baseball', 'hockey', 'tennis', 'golf', 'boxing', 'mma', 'ufc',
+            
+            # NBA球队
             'lakers', 'warriors', 'celtics', 'heat', 'spurs', 'bulls',
-            'timberwolves', 'thunder', 'jazz', 'blazers', 'clippers'
+            'timberwolves', 'thunder', 'jazz', 'blazers', 'clippers',
+            
+            # 足球赛事
+            'champions league', 'premier league', 'la liga', 'serie a', 'bundesliga',
+            'ligue 1', 'eredivisie', 'world cup', 'euro championship', 'copa america',
+            
+            # 足球队
+            'glimt', 'bodo', 'bodø/glimt', 'aston villa', 'villa', 'barcelona', 
+            'real madrid', 'manchester city', 'manchester united', 'liverpool', 
+            'chelsea', 'arsenal', 'tottenham', 'bayern munich', 'psg', 'juventus',
+            'inter milan', 'ac milan', 'napoli', 'roma', 'ajax', 'feyenoord', 'psv',
+            'benfica', 'porto', 'galatasaray', 'dortmund', 'leverkusen',
+            
+            # 其他体育词汇
+            'win', 'league', 'championship', 'cup', 'match', 'game', 'team',
+            'player', 'score', 'goal', 'point', 'season', 'tournament'
         ]
         return any(keyword in question_lower for keyword in sports_keywords)
     
@@ -1051,12 +1144,12 @@ class ProbabilityArbitrageStrategy:
     
     def are_mutually_exclusive_crypto_markets(self, question1: str, question2: str) -> bool:
         """检查两个加密货币市场是否真正互斥"""
+        import re
         q1 = question1.lower()
         q2 = question2.lower()
         
         # 提取价格目标
         def extract_price_target(question):
-            import re
             # 查找价格数字
             prices = re.findall(r'\$?([0-9,]+)', question)
             if prices:
@@ -1072,15 +1165,11 @@ class ProbabilityArbitrageStrategy:
         price2 = extract_price_target(question2)
         
         if price1 and price2:
-            # 如果一个价格目标明显高于另一个，可能存在包含关系
+            # 首先检查价格包含关系（优先级最高）
             if price1 > price2 * 1.5:  # 价格1是价格2的1.5倍以上
                 return False  # 不互斥（包含关系）
             elif price2 > price1 * 1.5:  # 价格2是价格1的1.5倍以上
                 return False  # 不互斥（包含关系）
-            
-            # 检查是否为相同价格目标的不同表述
-            if abs(price1 - price2) / max(price1, price2) < 0.1:  # 价格相差10%以内
-                return True  # 可能互斥（相似目标）
             
             # 检查是否为相反方向的价格预测
             # 例如："above $X" vs "below $X"
@@ -1088,19 +1177,113 @@ class ProbabilityArbitrageStrategy:
                 return True  # 互斥（相反方向）
             elif 'below' in q1 and 'above' in q2 and price1 == price2:
                 return True  # 互斥（相反方向）
+            
+            # 检查相近价格的处理逻辑（改进版本）
+            price_diff_ratio = abs(price1 - price2) / max(price1, price2)
+            price_inclusion_ratio = abs(price1 - price2) / min(price1, price2)
+            
+            if price_diff_ratio < 0.1:  # 价格相差10%以内
+                # 进一步检查是否为真正的相似价格目标
+                if price_inclusion_ratio < 0.05:  # 价格相差5%以内
+                    # 非常相近的价格，可能是同一目标的不同表述
+                    return True  # 可能互斥（相似目标）
+                else:
+                    # 相近但差异明显的价格，需要考虑包含关系
+                    # 检查时间范围是否相同
+                    time_match = self.check_crypto_time_compatibility(question1, question2)
+                    if not time_match:
+                        return False  # 时间范围不同，不互斥
+                    else:
+                        # 时间范围相同但价格有差异，可能不互斥
+                        return False  # 保守处理，不互斥
         
         # 检查是否为不同时间范围的市场
-        time_keywords = ['january', 'february', 'march', 'april', 'may', 'june',
-                       'july', 'august', 'september', 'october', 'november', 'december',
-                       'q1', 'q2', 'q3', 'q4', '2024', '2025', '2026']
-        
-        q1_times = [word for word in time_keywords if word in q1]
-        q2_times = [word for word in time_keywords if word in q2]
-        
-        if q1_times and q2_times and set(q1_times) != set(q2_times):
+        time_compatible = self.check_crypto_time_compatibility(question1, question2)
+        if not time_compatible:
             return False  # 不同时间范围，不互斥
         
         # 其他情况保守处理
+        return True
+    
+    def check_crypto_time_compatibility(self, question1: str, question2: str) -> bool:
+        """检查加密货币市场的时间兼容性"""
+        import re
+        q1 = question1.lower()
+        q2 = question2.lower()
+        
+        # 提取时间信息
+        def extract_time_info(question):
+            q = question.lower()
+            time_info = {
+                'months': [],
+                'dates': [],
+                'year': None,
+                'is_range': False
+            }
+            
+            # 查找月份
+            months = ['january', 'february', 'march', 'april', 'may', 'june',
+                      'july', 'august', 'september', 'october', 'november', 'december']
+            for month in months:
+                if month in q:
+                    time_info['months'].append(month)
+            
+            # 查找具体日期
+            date_ranges = re.findall(r'(\d{1,2})-(\d{1,2})', q)
+            single_dates = re.findall(r'(\d{1,2})(?:st|nd|rd|th)?', q)
+            
+            if date_ranges:
+                # 展平元组列表
+                for start, end in date_ranges:
+                    time_info['dates'].extend([int(start), int(end)])
+                time_info['is_range'] = True
+            elif single_dates:
+                time_info['dates'].extend([int(d) for d in single_dates])
+            
+            # 查找年份
+            year_match = re.search(r'20(\d{2,4})', q)
+            if year_match:
+                time_info['year'] = year_match.group(1)
+            
+            return time_info
+        
+        time1 = extract_time_info(question1)
+        time2 = extract_time_info(question2)
+        
+        # 检查年份是否相同
+        if time1['year'] and time2['year'] and time1['year'] != time2['year']:
+            return False  # 不同年份，不兼容
+        
+        # 检查月份是否相同
+        if time1['months'] and time2['months']:
+            common_months = set(time1['months']) & set(time2['months'])
+            if not common_months:
+                return False  # 没有共同月份，不兼容
+        
+        # 检查日期重叠
+        if time1['dates'] and time2['dates']:
+            if time1['is_range'] and time2['is_range']:
+                # 两个都是日期范围，检查是否有重叠
+                range1 = (min(time1['dates']), max(time1['dates']))
+                range2 = (min(time2['dates']), max(time2['dates']))
+                overlap = not (range1[1] < range2[0] or range2[1] < range1[0])
+                return overlap
+            elif time1['is_range'] or time2['is_range']:
+                # 一个是范围，一个是具体日期
+                if time1['is_range']:
+                    range_dates = time1['dates']
+                    single_date = time2['dates'][0] if time2['dates'] else None
+                else:
+                    range_dates = time2['dates']
+                    single_date = time1['dates'][0] if time1['dates'] else None
+                
+                if single_date and range_dates:
+                    return min(range_dates) <= single_date <= max(range_dates)
+            else:
+                # 两个都是具体日期
+                return len(set(time1['dates']) & set(time2['dates'])) > 0
+        
+        # 如果时间信息不完整，假设兼容
         return True
     
     def are_mutually_exclusive_sports_markets(self, question1: str, question2: str) -> bool:
@@ -1108,36 +1291,63 @@ class ProbabilityArbitrageStrategy:
         q1 = question1.lower()
         q2 = question2.lower()
         
-        # 提取队伍名称（简化版本）
+        # 提取队伍名称（增强版本）
         def extract_teams(question):
-            # 常见体育队伍名称
+            # 常见体育队伍名称 - 更完整的列表
             teams = [
+                # 足球队 - 欧洲主要联赛
+                'galatasaray', 'glimt', 'bodo', 'bodø/glimt', 'brann', 'molde', 'rosenborg', 'viking',
+                'barcelona', 'real madrid', 'atletico madrid', 'sevilla', 'valencia', 'athletic bilbao',
+                'manchester city', 'manchester united', 'liverpool', 'chelsea', 'arsenal', 'tottenham',
+                'aston villa', 'villa', 'everton', 'newcastle', 'west ham', 'leicester', 'leeds',
+                'bayern munich', 'bayern', 'borussia dortmund', 'dortmund', 'rb leipzig', 'leverkusen',
+                'psg', 'paris saint-germain', 'lyon', 'marseille', 'monaco', 'lille',
+                'juventus', 'juve', 'inter milan', 'inter', 'ac milan', 'milan', 'napoli', 'roma', 'fiorentina',
+                'ajax', 'feyenoord', 'psv', 'utrecht', 'az alkmaar', 'twente',
+                'benfica', 'porto', 'sporting cp', 'braga', 'guimaraes',
+                
+                # 足球队 - 南美
+                'boca juniors', 'river plate', 'flamengo', 'palmeiras', 'corinthians', 'santos',
+                'independiente', 'racing club', 'velez sarsfield',
+                
+                # 足球队 - 其他
+                'celtic', 'rangers', 'ajax', 'feyenoord', 'psv', 'shakhtar donetsk', 'dynamo kyiv',
+                'red star belgrade', 'partizan belgrade', 'dinamo zagreb', 'hajduk split',
+                'basaksehir', 'fenerbahce', 'trabzonspor', 'besiktas',
+                'olympiacos', 'panathinaikos', 'aek athens', 'paok',
+                'salzburg', 'lask', 'sturm graz', 'rapid wien',
+                'sparta prague', 'slavia prague', 'viktoria plzen',
+                'copenhagen', 'brondby', 'midtjylland', 'nordsjaelland',
+                'malmo', 'djurgarden', 'hacken', 'elfsborg',
+                'legia warsaw', 'lech poznan', 'rakow czestochowa',
+                
                 # NBA队伍
                 'lakers', 'warriors', 'celtics', 'heat', 'spurs', 'bulls', 
-                'nuggets', 'suns', 'bucks', 'sixers', 'nets', 'mavericks',
-                'timberwolves', 'thunder', 'jazz', 'blazers', 'clippers',
+                'nuggets', 'suns', 'bucks', 'sixers', '76ers', 'nets', 'mavericks',
+                'timberwolves', 'thunder', 'jazz', 'blazers', 'trail blazers', 'clippers',
                 'grizzlies', 'pelicans', 'kings', 'hornets', 'magic',
                 'pacers', 'pistons', 'raptors', 'wizards', 'hawks',
-                'knicks', 'cavaliers',
+                'knicks', 'cavaliers', 'pacers', 'hornets',
                 
                 # NFL队伍
-                'chiefs', 'eagles', '49ers', 'cowboys', 'patriots', 'packers',
-                'bills', 'bengals', 'ravens', 'steelers', 'browns',
-                
-                # 足球队
-                'galatasaray', 'glimt', 'bodo', 'barcelona', 'real madrid', 
-                'manchester', 'liverpool', 'chelsea', 'arsenal', 'bayern',
-                'psg', 'juventus', 'ac milan', 'inter', 'napoli', 'roma',
-                'dortmund', 'leverkusen', 'ajax', 'porto', 'benfica',
+                'chiefs', 'eagles', '49ers', '49 ers', 'cowboys', 'patriots', 'packers',
+                'bills', 'bengals', 'ravens', 'steelers', 'browns', 'jets',
+                'giants', 'dolphins', 'colts', 'jaguars', 'texans', 'titans',
+                'broncos', 'raiders', 'chargers', 'bears', 'lions', 'vikings',
+                'falcons', 'panthers', 'saints', 'buccaneers', 'cardinals', 'seahawks', 'rams',
                 
                 # 其他常见队伍
-                'yankees', 'red sox', 'dodgers', 'giants', 'cardinals'
+                'yankees', 'red sox', 'dodgers', 'giants', 'cardinals', 'cubs',
+                'real madrid', 'barca', 'man city', 'man utd', 'fc barcelona'
             ]
             
             found_teams = []
+            q_lower = question.lower()
+            
             for team in teams:
-                if team in question:
+                if team in q_lower:
                     found_teams.append(team)
+            
             return found_teams
         
         teams1 = extract_teams(q1)
@@ -1193,39 +1403,90 @@ class ProbabilityArbitrageStrategy:
             year_match = re.search(r'20(\d{2})', q)
             year = year_match.group(1) if year_match else None
             
-            # 查找赛事类型
+            # 查找具体赛事类型 - 更精确的识别
             event_type = None
-            if 'champion' in q or 'championship' in q or 'title' in q:
-                event_type = 'championship'
-            elif 'cup' in q:
-                event_type = 'cup'
-            elif 'league' in q:
-                event_type = 'league'
-            elif 'super bowl' in q:
-                event_type = 'super_bowl'
+            specific_event = None
+            
+            # 足球赛事识别
+            if 'champions league' in q:
+                event_type = 'football'
+                specific_event = 'champions_league'
+            elif 'premier league' in q:
+                event_type = 'football'
+                specific_event = 'premier_league'
+            elif 'la liga' in q:
+                event_type = 'football'
+                specific_event = 'la_liga'
+            elif 'serie a' in q:
+                event_type = 'football'
+                specific_event = 'serie_a'
+            elif 'bundesliga' in q:
+                event_type = 'football'
+                specific_event = 'bundesliga'
+            elif 'ligue 1' in q:
+                event_type = 'football'
+                specific_event = 'ligue_1'
+            elif 'eredivisie' in q:
+                event_type = 'football'
+                specific_event = 'eredivisie'
             elif 'world cup' in q:
-                event_type = 'world_cup'
+                event_type = 'football'
+                specific_event = 'world_cup'
+            elif 'euro' in q and 'championship' in q:
+                event_type = 'football'
+                specific_event = 'euro_championship'
+            elif 'copa america' in q:
+                event_type = 'football'
+                specific_event = 'copa_america'
+            
+            # 篮球赛事识别
+            elif 'nba' in q:
+                event_type = 'basketball'
+                specific_event = 'nba'
+            elif 'euroleague basketball' in q:
+                event_type = 'basketball'
+                specific_event = 'euroleague'
+            
+            # 美式足球赛事识别
+            elif 'super bowl' in q:
+                event_type = 'american_football'
+                specific_event = 'super_bowl'
+            elif 'nfl' in q:
+                event_type = 'american_football'
+                specific_event = 'nfl'
+            
+            # 通用赛事类型（作为后备）
+            elif 'champion' in q or 'championship' in q or 'title' in q:
+                event_type = 'general'
+                specific_event = 'championship'
+            elif 'cup' in q:
+                event_type = 'general'
+                specific_event = 'cup'
+            elif 'league' in q:
+                event_type = 'general'
+                specific_event = 'league'
             
             return {
                 'year': year,
                 'event_type': event_type,
+                'specific_event': specific_event,
                 'has_competition_keywords': any(word in q for word in ['vs', 'against', 'beat', 'defeat', 'win'])
             }
         
         info1 = extract_event_info(question1)
         info2 = extract_event_info(question2)
         
-        # 如果都有年份且年份相同，并且都是冠军/锦标赛类型
-        if (info1['year'] and info2['year'] and 
-            info1['year'] == info2['year'] and
-            info1['event_type'] and info2['event_type'] and
+        # 只有在同一具体赛事中才考虑互斥
+        if (info1['specific_event'] and info2['specific_event'] and 
+            info1['specific_event'] == info2['specific_event'] and
             info1['event_type'] == info2['event_type'] and
+            info1['year'] == info2['year'] and
             info1['has_competition_keywords'] and info2['has_competition_keywords']):
             
-            # 检查是否有竞争关键词（vs, against, beat, defeat等）
-            # 如果没有明确的竞争关键词，可能是同一赛事的不同参与者
+            # 同一具体赛事的不同竞争者，互斥
             return True
         
+        # 不同赛事类型或不同具体赛事，不互斥
         return False
     
     def are_mutually_exclusive_award_markets(self, question1: str, question2: str) -> bool:
@@ -1233,31 +1494,33 @@ class ProbabilityArbitrageStrategy:
         q1 = question1.lower()
         q2 = question2.lower()
         
-        # 提取奖项类别
+        # 提取奖项类别 - 更精确的匹配
         def extract_award_category(question):
             categories = []
             
-            # 奥斯卡奖项类别
-            if 'best picture' in question:
+            # 奥斯卡具体奖项类别 - 更严格的匹配
+            if 'best picture' in question and 'academy awards' in question:
                 categories.append('best_picture')
-            if 'best actor' in question:
+            if 'best actor' in question and 'academy awards' in question and 'supporting' not in question:
                 categories.append('best_actor')
-            if 'best actress' in question:
+            if 'best actress' in question and 'academy awards' in question and 'supporting' not in question:
                 categories.append('best_actress')
-            if 'best supporting actor' in question:
+            if 'best supporting actor' in question and 'academy awards' in question:
                 categories.append('best_supporting_actor')
-            if 'best supporting actress' in question:
+            if 'best supporting actress' in question and 'academy awards' in question:
                 categories.append('best_supporting_actress')
-            if 'best director' in question:
+            if 'best director' in question and 'academy awards' in question:
                 categories.append('best_director')
-            if 'best screenplay' in question:
-                categories.append('best_screenplay')
-            if 'original screenplay' in question:
-                categories.append('original_screenplay')
-            if 'adapted screenplay' in question:
-                categories.append('adapted_screenplay')
+            if 'best short film' in question and 'academy awards' in question:
+                categories.append('best_short_film')
+            if ('live action short' in question or 'short film' in question) and 'academy awards' in question:
+                categories.append('best_short_film')
             
-            # 其他奖项
+            # 其他奥斯卡奖项
+            if ('screenplay' in question or 'documentary' in question or 'international' in question) and 'academy awards' in question:
+                categories.append('other_oscar')
+            
+            # 其他奖项体系
             if 'golden globe' in question:
                 categories.append('golden_globes')
             if 'emmy' in question:
@@ -1270,27 +1533,36 @@ class ProbabilityArbitrageStrategy:
         categories1 = extract_award_category(q1)
         categories2 = extract_award_category(q2)
         
-        # 如果是不同的奖项类别，通常不互斥
+        # 如果是不同的奖项类别，肯定不互斥
         if categories1 and categories2 and set(categories1) != set(categories2):
             return False
         
         # 如果是相同的奖项类别，检查是否为不同的提名者
         if categories1 and categories2 and set(categories1) == set(categories2):
-            # 提取提名者/电影名称
+            # 提取提名者/电影名称 - 改进的提取逻辑
             def extract_nominee(question):
-                # 简化的提名者提取逻辑
                 words = question.split()
                 nominees = []
                 
-                # 查找可能的提名者（通常在 "win" 或 "at" 之前）
+                # 查找人名/电影名模式 - 通常在 "win" 前面
                 for i, word in enumerate(words):
                     if word == 'win' and i > 0:
-                        # 查找前面的电影/人名
+                        # 向前查找可能的提名者（最多5个词）
                         for j in range(max(0, i-5), i):
-                            if words[j] not in ['will', 'the', 'a', 'an', 'at', 'in', 'for']:
-                                nominees.append(words[j])
+                            candidate = words[j]
+                            # 过滤掉常见词汇
+                            if candidate not in ['will', 'the', 'a', 'an', 'at', 'in', 'for', 'of', 'and', 'or', 'but']:
+                                nominees.append(candidate)
                 
-                return nominees
+                # 特殊处理：查找特定人名模式
+                import re
+                # 查找大写开头的词（可能是人名）
+                capitalized_words = re.findall(r'\b[A-Z][a-z]+\b', question)
+                for word in capitalized_words:
+                    if word not in ['Will', 'The', 'A', 'An', 'At', 'In', 'For', 'Of', 'And', 'Or', 'But', 'Best', 'Academy', 'Awards']:
+                        nominees.append(word)
+                
+                return list(set(nominees))  # 去重
             
             nominees1 = extract_nominee(q1)
             nominees2 = extract_nominee(q2)
@@ -1298,8 +1570,12 @@ class ProbabilityArbitrageStrategy:
             # 如果是不同的提名者竞争同一奖项，则互斥
             if nominees1 and nominees2 and set(nominees1) != set(nominees2):
                 return True
+            
+            # 如果提名者相同，可能是重复市场，不互斥
+            if nominees1 and nominees2 and set(nominees1) == set(nominees2):
+                return False
         
-        # 默认情况下，认为不互斥
+        # 默认情况下，认为不互斥（保守策略）
         return False
     
     def find_arbitrage_opportunities(self) -> List[ArbitrageOpportunity]:
@@ -1519,6 +1795,27 @@ class ProbabilityArbitrageStrategy:
     
     def find_probability_arbitrage(self, markets: List[Dict], total_probability: float, group_info: Dict) -> Optional[ArbitrageOpportunity]:
         """发现概率套利机会 - 增强版"""
+        # 0. 首先检查市场是否真正互斥
+        if len(markets) >= 2:
+            are_mutually_exclusive = True
+            for i in range(len(markets)):
+                for j in range(i + 1, len(markets)):
+                    q1 = markets[i].get('question', '')
+                    q2 = markets[j].get('question', '')
+                    
+                    # 使用改进的互斥性检查
+                    if self.check_market_overlap(q1, q2):
+                        # 如果重叠（不互斥），则不是完全互斥的
+                        are_mutually_exclusive = False
+                        break
+                if not are_mutually_exclusive:
+                    break
+            
+            # 如果市场不是真正互斥的，不进行概率套利检测
+            if not are_mutually_exclusive:
+                self.logger.debug(f"市场不互斥，跳过概率套利检测")
+                return None
+        
         # 1. 流动性评估
         liquidity_metrics = self.assess_liquidity_depth(markets)
         
