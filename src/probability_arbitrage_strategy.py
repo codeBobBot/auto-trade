@@ -50,6 +50,10 @@ class ProbabilityArbitrageStrategy:
         if self.notification_service:
             self.notification_service.info("策略初始化", "概率套利策略已初始化")
         
+        # 重复下单防护机制
+        self.executed_opportunities = set()  # 存储已执行的套利机会ID
+        self.logger.info("重复下单防护机制已启用 - 永久一次下单")
+        
         # 智能互斥事件组定义
         self.mutually_exclusive_groups = {
             # 选举相关 - 精细化分组
@@ -511,11 +515,11 @@ class ProbabilityArbitrageStrategy:
             self.logger.debug(f"组 {group_name}: {len(markets)} 个市场")
             
             if len(markets) < self.arbitrage_thresholds['min_markets_count']:
-                self.logger.warning(f"市场数量不足，跳过组 {group_name}")
+                self.logger.debug(f"市场数量不足，跳过组 {group_name}")
                 continue
             
             if len(markets) > self.arbitrage_thresholds['max_markets_count']:
-                self.logger.warning(f"市场数量过多，跳过组 {group_name}")
+                self.logger.debug(f"市场数量过多，跳过组 {group_name}")
                 continue
             
             # 计算概率总和
@@ -725,7 +729,7 @@ class ProbabilityArbitrageStrategy:
         # 更新关键词库（这里可以设置阈值避免误添加）
         for group_name, new_keywords in category_keywords.items():
             if len(new_keywords) > 0:
-                self.logger.info(f"为组 {group_name} 发现潜在新关键词: {new_keywords[:5]}")
+                self.logger.debug(f"为组 {group_name} 发现潜在新关键词: {new_keywords[:5]}")
                 
                 # 可以选择性地添加新关键词
                 # self.mutually_exclusive_groups[group_name]['keywords'].extend(new_keywords[:3])
@@ -1578,6 +1582,25 @@ class ProbabilityArbitrageStrategy:
         # 默认情况下，认为不互斥（保守策略）
         return False
     
+    def generate_opportunity_id(self, opportunity: ArbitrageOpportunity) -> str:
+        """生成套利机会的唯一ID"""
+        # 基于市场ID和动作生成唯一标识
+        market_ids = sorted([m.get('id', '') for m in opportunity.markets])
+        market_str = '_'.join(market_ids[:3])  # 取前3个市场ID
+        action = opportunity.action
+        return f"{market_str}_{action}_{opportunity.type}"
+    
+    def is_opportunity_executed(self, opportunity: ArbitrageOpportunity) -> bool:
+        """检查套利机会是否已执行"""
+        opportunity_id = self.generate_opportunity_id(opportunity)
+        return opportunity_id in self.executed_opportunities
+    
+    def mark_opportunity_executed(self, opportunity: ArbitrageOpportunity):
+        """标记套利机会已执行"""
+        opportunity_id = self.generate_opportunity_id(opportunity)
+        self.executed_opportunities.add(opportunity_id)
+        self.logger.debug(f"标记套利机会已执行: {opportunity_id}")
+    
     def find_arbitrage_opportunities(self) -> List[ArbitrageOpportunity]:
         """发现套利机会"""
         opportunities = []
@@ -1590,7 +1613,7 @@ class ProbabilityArbitrageStrategy:
             self.logger.debug(f"组 {group_name}: {len(markets)} 个市场")
             
             if len(markets) < 2:
-                self.logger.warning(f"市场数量不足，跳过组 {group_name}")
+                self.logger.debug(f"市场数量不足，跳过组 {group_name}")
                 continue  # 至少需要2个市场才能形成套利
             
             # 计算概率总和
@@ -2104,6 +2127,11 @@ class ProbabilityArbitrageStrategy:
     
     def execute_arbitrage(self, opportunity: ArbitrageOpportunity):
         """执行套利交易"""
+        # 检查是否已执行过
+        if self.is_opportunity_executed(opportunity):
+            self.logger.debug(f"套利机会已执行，跳过: {opportunity.description[:50]}...")
+            return
+        
         self.logger.info(f"执行套利: {opportunity.action}")
         
         # 发送套利执行通知
@@ -2136,6 +2164,9 @@ class ProbabilityArbitrageStrategy:
             
             # 记录套利交易
             self.log_arbitrage_trade(opportunity)
+            
+            # 标记套利机会已执行
+            self.mark_opportunity_executed(opportunity)
             
             # 发送套利执行成功通知
             if self.notification_service:

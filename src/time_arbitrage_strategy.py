@@ -51,6 +51,10 @@ class TimeArbitrageStrategy:
         if self.notification_service:
             self.notification_service.info("策略初始化", "时间套利策略已初始化")
         
+        # 重复下单防护机制
+        self.executed_opportunities = set()  # 存储已执行的时间套利机会ID
+        self.logger.info("重复下单防护机制已启用 - 永久一次下单")
+        
         # 时间套利参数
         self.time_arbitrage_params = {
             'max_days_to_expiry': 30,      # 最大30天到期的市场
@@ -73,6 +77,23 @@ class TimeArbitrageStrategy:
             'market_consensus_weight': 0.2,
             'liquidity_weight': 0.1
         }
+    
+    def generate_opportunity_id(self, opportunity: TimeArbitrageOpportunity) -> str:
+        """生成时间套利机会的唯一ID"""
+        # 基于市场ID和到期天数生成唯一标识
+        market_id = opportunity.market.get('id', '')[:8]
+        return f"{market_id}_expiry_{opportunity.days_to_expiry}"
+    
+    def is_opportunity_executed(self, opportunity: TimeArbitrageOpportunity) -> bool:
+        """检查时间套利机会是否已执行"""
+        opportunity_id = self.generate_opportunity_id(opportunity)
+        return opportunity_id in self.executed_opportunities
+    
+    def mark_opportunity_executed(self, opportunity: TimeArbitrageOpportunity):
+        """标记时间套利机会已执行"""
+        opportunity_id = self.generate_opportunity_id(opportunity)
+        self.executed_opportunities.add(opportunity_id)
+        self.logger.debug(f"标记时间套利机会已执行: {opportunity_id}")
     
     def scan_time_arbitrage(self, scan_interval: int = 120):
         """持续扫描时间套利机会"""
@@ -132,8 +153,15 @@ class TimeArbitrageStrategy:
                             f"紧急程度: {opportunity.urgency}"
                         )
                     
+                    # 检查是否已执行过
+                    if self.is_opportunity_executed(opportunity):
+                        self.logger.debug(f"时间套利机会已执行，跳过: {opportunity.market['question'][:50]}...")
+                        continue
+                    
                     if self.enable_trading:
                         self.execute_time_arbitrage(opportunity)
+                        # 标记机会已执行
+                        self.mark_opportunity_executed(opportunity)
                     else:
                         self.logger.info("模拟模式：记录套利机会")
                         self.log_arbitrage_opportunity(opportunity)

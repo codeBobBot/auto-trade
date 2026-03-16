@@ -50,6 +50,10 @@ class InformationAdvantageStrategy:
         if self.notification_service:
             self.notification_service.info("策略初始化", "信息优势策略已初始化")
         
+        # 重复下单防护机制
+        self.executed_signals = set()  # 存储已执行的交易信号ID
+        self.logger.info("重复下单防护机制已启用 - 永久一次下单")
+        
         # 交易关键词映射 - 优化版本
         self.keyword_market_mapping = {
             # 政治类 - 高优先级
@@ -178,6 +182,23 @@ class InformationAdvantageStrategy:
         # 最近处理过的新闻（避免重复处理）
         self.processed_news = set()
         self.processing_window = timedelta(minutes=30)
+    
+    def generate_signal_id(self, impact: NewsImpact) -> str:
+        """生成交易信号的唯一ID"""
+        # 基于关键词、方向和置信度生成唯一标识
+        keywords_str = '_'.join(sorted(impact.keywords[:3]))  # 取前3个关键词
+        return f"{keywords_str}_{impact.direction}_{impact.confidence:.2f}"
+    
+    def is_signal_executed(self, impact: NewsImpact) -> bool:
+        """检查交易信号是否已执行"""
+        signal_id = self.generate_signal_id(impact)
+        return signal_id in self.executed_signals
+    
+    def mark_signal_executed(self, impact: NewsImpact):
+        """标记交易信号已执行"""
+        signal_id = self.generate_signal_id(impact)
+        self.executed_signals.add(signal_id)
+        self.logger.debug(f"标记交易信号已执行: {signal_id}")
     
     def monitor_news_continuously(self, check_interval: int = 30):
         """持续监控新闻并自动交易"""
@@ -531,6 +552,10 @@ class InformationAdvantageStrategy:
     
     def execute_trades(self, impact: NewsImpact):
         """执行交易"""
+        # 检查是否已执行过
+        if self.is_signal_executed(impact):
+            self.logger.debug(f"交易信号已执行，跳过: {impact.keywords[:3]}...")
+            return
         if not impact.affected_markets:
             print("⚠️ 没有找到相关市场")
             return
@@ -566,6 +591,9 @@ class InformationAdvantageStrategy:
                 
             except Exception as e:
                 print(f"❌ 交易执行失败: {e}")
+        
+        # 标记交易信号已执行
+        self.mark_signal_executed(impact)
     
     def calculate_position_size(self, market: Dict, impact: NewsImpact) -> float:
         """计算仓位大小"""

@@ -58,6 +58,10 @@ class CrossMarketArbitrageStrategy:
         if self.notification_service:
             self.notification_service.info("策略初始化", "跨市场套利策略已初始化")
         
+        # 重复下单防护机制
+        self.executed_signals = set()  # 存储已执行的套利信号ID
+        self.logger.info("重复下单防护机制已启用 - 永久一次下单")
+        
         # 相关市场定义
         self.correlated_market_patterns = {
             # 选举相关
@@ -114,6 +118,24 @@ class CrossMarketArbitrageStrategy:
             'min_correlation': 0.6,   # 最小相关性0.6
             'min_return': 0.03        # 最小预期收益3%
         }
+    
+    def generate_signal_id(self, signal: ArbitrageSignal) -> str:
+        """生成套利信号的唯一ID"""
+        # 基于市场ID和类型生成唯一标识
+        market1_id = signal.correlated_market.market1.get('id', '')[:8]
+        market2_id = signal.correlated_market.market2.get('id', '')[:8]
+        return f"{market1_id}_{market2_id}_{signal.type}"
+    
+    def is_signal_executed(self, signal: ArbitrageSignal) -> bool:
+        """检查套利信号是否已执行"""
+        signal_id = self.generate_signal_id(signal)
+        return signal_id in self.executed_signals
+    
+    def mark_signal_executed(self, signal: ArbitrageSignal):
+        """标记套利信号已执行"""
+        signal_id = self.generate_signal_id(signal)
+        self.executed_signals.add(signal_id)
+        self.logger.debug(f"标记套利信号已执行: {signal_id}")
     
     def scan_cross_market_arbitrage(self, scan_interval: int = 90):
         """持续扫描跨市场套利机会"""
@@ -176,8 +198,15 @@ class CrossMarketArbitrageStrategy:
                             f"置信度: {signal.confidence:.2f}"
                         )
                     
+                    # 检查是否已执行过
+                    if self.is_signal_executed(signal):
+                        self.logger.debug(f"套利信号已执行，跳过: {signal.description[:50]}...")
+                        continue
+                    
                     if self.enable_trading:
                         self.execute_cross_market_arbitrage(signal)
+                        # 标记信号已执行
+                        self.mark_signal_executed(signal)
                     else:
                         self.logger.info("模拟模式：记录套利机会")
                         self.log_arbitrage_signal(signal)
