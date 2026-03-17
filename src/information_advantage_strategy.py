@@ -11,13 +11,14 @@
 
 import time
 import json
+import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
 from sentiment_service import GlobalSentimentService
 from gamma_client import PolymarketGammaClient
-from clob_client_auto_creds import ClobTradingClientAutoCreds
+from clob_client_auto_creds import ClobTradingClientAutoCreds, MAX_TRADE_AMOUNT_USD, MAX_DAILY_LOSS_USD, STOP_LOSS_PERCENTAGE
 from logger_config import get_strategy_logger
 
 @dataclass
@@ -608,26 +609,43 @@ class InformationAdvantageStrategy:
         self.mark_signal_executed(impact)
     
     def calculate_position_size(self, market: Dict, impact: NewsImpact) -> float:
-        """计算仓位大小"""
-        # 基础仓位
-        base_size = 100.0  # USDC
+        """计算仓位大小 - 应用用户配置的风险限制"""
+        # 1. 检查日损失限制
+        if hasattr(self, 'daily_pnl') and self.daily_pnl < -MAX_DAILY_LOSS_USD:
+            self.logger.warning(f"日损失 ${abs(self.daily_pnl):.2f} 已超过限制 ${MAX_DAILY_LOSS_USD:.2f}，停止交易")
+            return 0.0
         
-        # 根据置信度调整
+        # 2. 基础仓位 - 使用用户配置的最大交易金额
+        base_size = min(100.0, MAX_TRADE_AMOUNT_USD)  # 不超过用户配置
+        
+        # 3. 根据置信度调整
         confidence_multiplier = impact.confidence
         
-        # 根据影响程度调整
+        # 4. 根据影响程度调整 - 应用止损百分比
         impact_multiplier = impact.expected_impact
+        # 如果预期影响小于止损百分比，大幅降低仓位
+        if impact.expected_impact < STOP_LOSS_PERCENTAGE / 100:
+            impact_multiplier *= 0.1
         
-        # 根据市场流动性调整
+        # 5. 根据市场流动性调整
         liquidity = float(market.get('liquidity', 10000))
         liquidity_multiplier = min(liquidity / 10000, 2.0)
         
         # 计算最终仓位
         position_size = base_size * confidence_multiplier * impact_multiplier * liquidity_multiplier
         
-        # 限制最大仓位
-        max_position = 1000.0  # 最大1000 USDC
+        # 6. 应用用户配置的最大交易金额限制
+        position_size = min(position_size, MAX_TRADE_AMOUNT_USD)
+        
+        # 7. 限制最大仓位
+        max_position = min(1000.0, MAX_TRADE_AMOUNT_USD)  # 最大仓位也不超过用户配置
         position_size = min(position_size, max_position)
+        
+        # 8. 最小仓位要求 - 但不超过用户配置
+        min_position = min(5.0, MAX_TRADE_AMOUNT_USD)
+        position_size = max(position_size, min_position)
+        
+        self.logger.info(f"信息优势仓位计算: ${position_size:.2f} (基础: ${base_size:.2f}, 限制: ${MAX_TRADE_AMOUNT_USD:.2f})")
         
         return round(position_size, 2)
     

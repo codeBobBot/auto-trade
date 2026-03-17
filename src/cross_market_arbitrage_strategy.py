@@ -12,12 +12,13 @@
 
 import time
 import json
+import os
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
 from gamma_client import PolymarketGammaClient
-from clob_client_auto_creds import ClobTradingClientAutoCreds
+from clob_client_auto_creds import ClobTradingClientAutoCreds, MAX_TRADE_AMOUNT_USD, MAX_DAILY_LOSS_USD, STOP_LOSS_PERCENTAGE
 from logger_config import get_strategy_logger
 
 @dataclass
@@ -497,26 +498,43 @@ class CrossMarketArbitrageStrategy:
             self.logger.error(f"卖出失败: {e}")
     
     def calculate_position_size(self, market: Dict, signal: ArbitrageSignal) -> float:
-        """计算仓位大小"""
-        # 基础仓位
-        base_size = 150.0  # USDC
+        """计算仓位大小 - 应用用户配置的风险限制"""
+        # 1. 检查日损失限制
+        if hasattr(self, 'daily_pnl') and self.daily_pnl < -MAX_DAILY_LOSS_USD:
+            self.logger.warning(f"日损失 ${abs(self.daily_pnl):.2f} 已超过限制 ${MAX_DAILY_LOSS_USD:.2f}，停止交易")
+            return 0.0
         
-        # 根据置信度调整
+        # 2. 基础仓位 - 使用用户配置的最大交易金额
+        base_size = min(150.0, MAX_TRADE_AMOUNT_USD)  # 不超过用户配置
+        
+        # 3. 根据置信度调整
         confidence_multiplier = signal.confidence
         
-        # 根据预期收益调整
+        # 4. 根据预期收益调整 - 应用止损百分比
         return_multiplier = min(signal.expected_return * 8, 2.0)
+        # 如果预期收益小于止损百分比，大幅降低仓位
+        if signal.expected_return < STOP_LOSS_PERCENTAGE / 100:
+            return_multiplier *= 0.1
         
-        # 根据流动性调整
+        # 5. 根据流动性调整
         liquidity = float(market.get('liquidity', 5000))
         liquidity_multiplier = min(liquidity / 15000, 1.5)
         
         # 计算最终仓位
         position_size = base_size * confidence_multiplier * return_multiplier * liquidity_multiplier
         
-        # 限制最大仓位
-        max_position = 1500.0  # 最大1500 USDC
+        # 6. 应用用户配置的最大交易金额限制
+        position_size = min(position_size, MAX_TRADE_AMOUNT_USD)
+        
+        # 7. 限制最大仓位
+        max_position = min(1500.0, MAX_TRADE_AMOUNT_USD)  # 最大仓位也不超过用户配置
         position_size = min(position_size, max_position)
+        
+        # 8. 最小仓位要求 - 但不超过用户配置
+        min_position = min(10.0, MAX_TRADE_AMOUNT_USD)
+        position_size = max(position_size, min_position)
+        
+        self.logger.info(f"跨市场套利仓位计算: ${position_size:.2f} (基础: ${base_size:.2f}, 限制: ${MAX_TRADE_AMOUNT_USD:.2f})")
         
         return round(position_size, 2)
     

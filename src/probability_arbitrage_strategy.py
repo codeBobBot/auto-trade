@@ -12,12 +12,13 @@
 
 import time
 import json
+import os
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
 from gamma_client import PolymarketGammaClient
-from clob_client_auto_creds import ClobTradingClientAutoCreds
+from clob_client_auto_creds import ClobTradingClientAutoCreds, MAX_TRADE_AMOUNT_USD, MAX_DAILY_LOSS_USD, STOP_LOSS_PERCENTAGE
 from logger_config import get_strategy_logger
 
 @dataclass
@@ -3607,28 +3608,36 @@ class ProbabilityArbitrageStrategy:
             self.logger.error(f"卖出失败: {e}")
     
     def calculate_arbitrage_position_size(self, market: Dict, opportunity: ArbitrageOpportunity) -> float:
-        """动态计算套利仓位大小"""
-        # 1. 基础仓位计算
-        base_size = 200.0  # USDC
+        """动态计算套利仓位大小 - 应用用户配置的风险限制"""
+        # 1. 检查日损失限制
+        if hasattr(self, 'daily_pnl') and self.daily_pnl < -MAX_DAILY_LOSS_USD:
+            self.logger.warning(f"日损失 ${abs(self.daily_pnl):.2f} 已超过限制 ${MAX_DAILY_LOSS_USD:.2f}，停止交易")
+            return 0.0
         
-        # 2. 置信度调整 (30%)
+        # 2. 基础仓位计算 - 使用用户配置的最大交易金额
+        base_size = min(200.0, MAX_TRADE_AMOUNT_USD)  # 不超过用户配置的最大交易金额
+        
+        # 3. 置信度调整 (30%)
         confidence_multiplier = opportunity.confidence
         
-        # 3. 预期收益调整 (25%)
+        # 4. 预期收益调整 (25%) - 应用止损百分比
         return_multiplier = min(opportunity.expected_return * 8, 2.0)
+        # 如果预期收益小于止损百分比，大幅降低仓位
+        if opportunity.expected_return < STOP_LOSS_PERCENTAGE / 100:
+            return_multiplier *= 0.1
         
-        # 4. 流动性调整 (20%)
+        # 5. 流动性调整 (20%)
         liquidity = float(market.get('liquidity', 5000))
         liquidity_multiplier = min(liquidity / 15000, 1.5)
         
-        # 5. 市场质量调整 (15%)
+        # 6. 市场质量调整 (15%)
         quality_score = self.calculate_market_quality(market)
         quality_multiplier = 0.5 + quality_score * 0.5
         
-        # 6. 风险调整 (10%)
+        # 7. 风险调整 (10%)
         risk_multiplier = self.calculate_risk_multiplier(market, opportunity)
         
-        # 7. 动态市场条件调整
+        # 8. 动态市场条件调整
         market_condition_multiplier = self.calculate_market_condition_multiplier(market)
         
         # 计算最终仓位
@@ -3642,8 +3651,13 @@ class ProbabilityArbitrageStrategy:
             market_condition_multiplier
         )
         
-        # 8. 风险限制
+        # 9. 应用用户配置的最大交易金额限制
+        position_size = min(position_size, MAX_TRADE_AMOUNT_USD)
+        
+        # 10. 风险限制
         position_size = self.apply_position_limits(position_size, market, opportunity)
+        
+        self.logger.info(f"计算仓位大小: ${position_size:.2f} (基础: ${base_size:.2f}, 限制: ${MAX_TRADE_AMOUNT_USD:.2f})")
         
         return round(position_size, 2)
     
@@ -3708,25 +3722,30 @@ class ProbabilityArbitrageStrategy:
         return multiplier
     
     def apply_position_limits(self, position_size: float, market: Dict, opportunity: ArbitrageOpportunity) -> float:
-        """应用仓位限制"""
-        # 1. 单个市场最大仓位
+        """应用仓位限制 - 包括用户配置的风险限制"""
+        # 1. 应用用户配置的最大交易金额限制
+        position_size = min(position_size, MAX_TRADE_AMOUNT_USD)
+        
+        # 2. 单个市场最大仓位
         max_single_position = self.risk_controls['max_position_size']
         position_size = min(position_size, max_single_position)
         
-        # 2. 基于流动性的仓位限制
+        # 3. 基于流动性的仓位限制
         liquidity = float(market.get('liquidity', 0))
         liquidity_limit = liquidity * self.risk_controls['liquidity_requirement']
         position_size = min(position_size, liquidity_limit)
         
-        # 3. 基于预期收益的仓位限制
-        if opportunity.expected_return < 0.02:  # 低收益限制仓位
-            position_size *= 0.7
+        # 4. 基于预期收益的仓位限制 - 应用止损百分比
+        if opportunity.expected_return < STOP_LOSS_PERCENTAGE / 100:  # 低收益且低于止损，限制仓位
+            position_size *= 0.5
         elif opportunity.expected_return > 0.1:  # 高收益可以增加仓位
             position_size *= 1.2
         
-        # 4. 最小仓位要求
-        min_position = 50.0  # 最小50 USDC
+        # 5. 最小仓位要求 - 但不超过用户配置的最大金额
+        min_position = min(50.0, MAX_TRADE_AMOUNT_USD)  # 最小仓位不超过用户配置
         position_size = max(position_size, min_position)
+        
+        self.logger.info(f"应用仓位限制: ${position_size:.2f} (最大: ${MAX_TRADE_AMOUNT_USD:.2f}, 最小: ${min_position:.2f})")
         
         return position_size
     

@@ -11,6 +11,7 @@
 - **实时监控**: Telegram 通知、Bot交互控制、错误告警、健康检查
 - **回测框架**: 历史数据回测、性能评估、策略优化
 - **健壮架构**: API 重试、异常处理、数据验证
+- **智能交易客户端**: 自动API凭证生成、多层token_id获取、增强fallback机制
 
 ## 📊 系统架构
 
@@ -156,7 +157,7 @@ polymarket-arbitrage/
 │   ├── alert_system.py            # 监控告警
 │   ├── backtest.py                # 回测框架
 │   ├── gamma_client.py            # Gamma API 客户端
-│   ├── clob_client.py             # CLOB 交易客户端
+│   ├── clob_client_auto_creds.py  # 智能CLOB交易客户端(自动凭证+增强fallback)
 │   ├── tavily_monitor.py          # 新闻监控
 │   ├── arbitrage_strategy.py      # 情绪套利策略(简化版)
 │   ├── price_strategy.py          # 价格策略(简化版)
@@ -246,7 +247,36 @@ polymarket-arbitrage/
 - **性能指标**: 夏普比率、最大回撤、胜率
 - **报告生成**: 文本报告、JSON 数据
 
-### 7. 全球舆情模块 (`src/sentiment/`)
+### 8. 智能CLOB交易客户端 (`clob_client_auto_creds.py`)
+
+新一代交易客户端，解决所有API调用问题：
+
+- **自动API凭证生成**: 使用`create_or_derive_api_creds`解决401错误
+- **增强token_id获取**: 多层fallback机制，从Gamma API智能提取token地址
+- **多层fallback保护**: 
+  1. 增强的token_id获取（本地数据→缓存→Gamma API）
+  2. 备选方法（订单簿→价格API→直接使用market_id）
+  3. 最终fallback（直接使用market_id创建订单）
+- **智能调试功能**: `debug_market_api()`测试多个端点，`find_token_fields_in_data()`递归查找token字段
+- **标准Logger**: 替换所有print语句，支持日志级别和文件输出
+- **健壮错误处理**: 详细的错误信息和恢复机制
+
+**核心方法**:
+```python
+# 自动凭证生成
+client = ClobTradingClientAutoCreds(auto_derive_creds=True)
+
+# 增强的token_id获取
+token_id = client.get_market_token_id_enhanced(market)
+
+# 多层fallback订单创建
+result = client.create_order_with_enhanced_fallback(market, 'BUY', size, price)
+
+# 调试API响应
+debug_info = client.debug_market_api(market_id)
+```
+
+### 9. 全球舆情模块 (`src/sentiment/`)
 
 - **多源数据采集**: 新闻(Tavily/NewsAPI/GNews)、Twitter/X、Reddit
 - **多语言分析**: 支持中英日韩等10+语言，自动翻译
@@ -255,6 +285,44 @@ polymarket-arbitrage/
 - **数据缓存**: 内存缓存 + 持久化存储
 
 ## 📈 使用示例
+
+### 智能交易客户端使用
+
+```python
+from src.clob_client_auto_creds import ClobTradingClientAutoCreds
+import logging
+
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+
+# 创建智能客户端（自动生成凭证）
+client = ClobTradingClientAutoCreds(auto_derive_creds=True)
+
+# 测试市场数据
+market = {
+    'id': '1162940',
+    'question': 'Will Bitcoin reach $100,000 by end of 2024?'
+}
+
+# 方法1: 增强的token_id获取
+token_id = client.get_market_token_id_enhanced(market)
+if token_id:
+    print(f"成功获取token_id: {token_id}")
+
+# 方法2: 多层fallback订单创建
+result = client.create_order_with_enhanced_fallback(
+    market, 'BUY', 10.0, 0.65
+)
+if result['success']:
+    print(f"订单创建成功: {result['order_id']}")
+else:
+    print(f"订单失败: {result['error']}")
+
+# 方法3: 调试API响应
+debug_info = client.debug_market_api('1162940')
+print(f"测试的端点: {debug_info['api_endpoints']}")
+print(f"找到的token字段: {debug_info['token_fields_found']}")
+```
 
 ### 运行定时监控
 
@@ -362,6 +430,10 @@ combined_signal = ensemble.ensemble_signals(
 - [x] 监控告警系统
 - [x] 回测框架
 - [x] 全球舆情模块（多源采集、多语言分析、趋势追踪、预警系统）
+- [x] 智能CLOB交易客户端（自动凭证生成、多层token_id获取、增强fallback）
+- [x] API调用问题修复（401/404/400错误解决）
+- [x] Logger标准化（替换print语句）
+- [x] Gamma API集成（智能token地址提取）
 
 ### 进行中 🚧
 
@@ -386,6 +458,27 @@ combined_signal = ensemble.ensemble_signals(
 - **智能运维**: 异常检测、自动恢复、智能告警降噪
 
 ## 📝 更新日志
+
+### v2.2.0 (2026-03-17)
+
+- ✨ 新增智能CLOB交易客户端 (`clob_client_auto_creds.py`)
+  - 自动API凭证生成，解决401错误
+  - 多层token_id获取机制，解决"无法获取token_id"错误
+  - 增强fallback机制，确保交易执行成功率
+  - 智能调试功能，自动测试Gamma API端点
+  - 标准Logger替换，支持日志级别和文件输出
+- 🔧 API调用问题修复
+  - 修复401错误：使用`create_or_derive_api_creds`自动生成凭证
+  - 修复404错误：正确的token_id提取和API方法调用
+  - 修复400错误：clobTokenIds字段解析和token_id格式处理
+- 🔍 Gamma API集成
+  - 智能token地址提取（支持clobTokenIds、clobTokenId等多种字段）
+  - 递归查找token相关字段
+  - 多端点测试和fallback机制
+- 📝 完善错误处理和日志系统
+  - 所有新方法使用标准logger
+  - 详细的错误信息和调试数据
+  - 多层fallback保护机制
 
 ### v2.1.0 (2026-03-14)
 
@@ -412,6 +505,85 @@ combined_signal = ensemble.ensemble_signals(
 - ✨ 集成 Telegram 监控告警
 - ✨ 实现回测框架
 - 📝 完善配置和文档
+
+## 🔧 故障排除
+
+### 常见问题解决
+
+#### 1. "无法获取token_id"错误
+
+**问题**: 程序报错"无法获取token_id: {'id': '1162940', 'question': ...}"
+
+**解决方案**: 使用新的智能交易客户端
+```python
+from src.clob_client_auto_creds import ClobTradingClientAutoCreds
+
+# 替换原来的客户端
+client = ClobTradingClientAutoCreds(auto_derive_creds=True)
+
+# 使用增强的token_id获取
+token_id = client.get_market_token_id_enhanced(market)
+```
+
+#### 2. 401 API错误
+
+**问题**: "PolyApiException[status_code=401]"
+
+**解决方案**: 启用自动凭证生成
+```python
+# 自动生成API凭证
+client = ClobTradingClientAutoCreds(auto_derive_creds=True)
+```
+
+#### 3. 404 Market Not Found错误
+
+**问题**: "PolyApiException[status_code=404, error_message={'error': 'market not found'}]"
+
+**解决方案**: 使用正确的token地址而不是市场ID
+```python
+# 使用增强方法获取正确的token_id
+token_id = client.get_market_token_id_enhanced(market)
+result = client.create_order(token_id, 'BUY', size, price)
+```
+
+#### 4. 400 Invalid Token ID错误
+
+**问题**: "PolyApiException[status_code=400, error_message={'error': 'Invalid token id'}]"
+
+**解决方案**: 使用多层fallback机制
+```python
+# 使用增强fallback自动处理token_id格式
+result = client.create_order_with_enhanced_fallback(market, 'BUY', size, price)
+```
+
+#### 5. 403 地区限制错误
+
+**问题**: "Trading restricted in your region"
+
+**解决方案**: 这是正常的地区限制，不是代码问题
+- 检查Polymarket支持的地区
+- 使用VPN或代理服务器
+- 仅在支持的地区进行交易
+
+### 调试工具
+
+#### 调试Gamma API响应
+```python
+# 测试多个API端点并查找token字段
+debug_info = client.debug_market_api('1162940')
+print(f"找到的token字段: {debug_info['token_fields_found']}")
+print(f"最终token_id: {debug_info['final_token_id']}")
+```
+
+#### 测试交易连接
+```python
+# 测试客户端连接和凭证
+result = client.test_connection()
+print(f"连接状态: {result['status']}")
+if result['status'] == 'success':
+    print(f"钱包地址: {result['address']}")
+    print(f"余额: ${result['balance']:.2f}")
+```
 
 ## 🤝 贡献
 

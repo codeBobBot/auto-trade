@@ -20,6 +20,11 @@ from py_clob_client.order_builder.constants import BUY, SELL
 
 load_dotenv('config/.env', override=True)
 
+# 从环境变量读取风险控制配置
+MAX_TRADE_AMOUNT_USD = float(os.getenv('MAX_TRADE_AMOUNT_USD', 10))  # 默认$10
+MAX_DAILY_LOSS_USD = float(os.getenv('MAX_DAILY_LOSS_USD', 50))     # 默认$50
+STOP_LOSS_PERCENTAGE = float(os.getenv('STOP_LOSS_PERCENTAGE', 10)) # 默认10%
+
 
 class ClobTradingClientAutoCreds:
     """CLOB 交易客户端 - 自动生成 API 凭证"""
@@ -624,7 +629,14 @@ class ClobTradingClientAutoCreds:
             }
         
         try:
-            self.logger.info(f"创建订单: {side} {size} @ {price}")
+            # 应用单笔交易金额限制
+            trade_amount = size * price
+            if trade_amount > MAX_TRADE_AMOUNT_USD:
+                self.logger.warning(f"交易金额 ${trade_amount:.2f} 超过限制 ${MAX_TRADE_AMOUNT_USD:.2f}，自动调整")
+                size = MAX_TRADE_AMOUNT_USD / price  # 调整交易数量
+                trade_amount = MAX_TRADE_AMOUNT_USD
+            
+            self.logger.info(f"创建订单: {side} {size} @ {price} (总金额: ${trade_amount:.2f})")
             
             # 确定买卖方向
             order_side = BUY if side.upper() == 'BUY' else SELL
@@ -645,7 +657,9 @@ class ClobTradingClientAutoCreds:
             return {
                 'success': True,
                 'order_id': getattr(order_result, 'order_id', None),
-                'result': order_result
+                'result': order_result,
+                'trade_amount': trade_amount,
+                'adjusted_size': size if trade_amount == MAX_TRADE_AMOUNT_USD else None
             }
             
         except Exception as e:

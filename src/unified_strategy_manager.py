@@ -26,6 +26,7 @@ from time_arbitrage_strategy import TimeArbitrageStrategy
 from notification_service import NotificationService, get_notification_service
 from telegram_bot_service import TelegramBotService, get_telegram_bot
 from logger_config import get_system_logger, get_strategy_logger
+from clob_client_auto_creds import MAX_TRADE_AMOUNT_USD, MAX_DAILY_LOSS_USD, STOP_LOSS_PERCENTAGE
 
 @dataclass
 class StrategyConfig:
@@ -97,13 +98,13 @@ class UnifiedStrategyManager:
             except Exception as e:
                 self.logger.error(f"Telegram Bot初始化失败: {e}")
         
-        # 策略配置
+        # 策略配置 - 应用用户配置的风险限制
         self.strategy_configs = {
             'information_advantage': StrategyConfig(
                 name='信息优势交易',
                 enabled=True,
                 weight=0.35,  # 35%资金
-                max_position=2000.0,
+                max_position=min(2000.0, MAX_TRADE_AMOUNT_USD),  # 不超过用户配置
                 min_confidence=0.7,
                 scan_interval=30,
                 priority=1
@@ -112,7 +113,7 @@ class UnifiedStrategyManager:
                 name='概率套利',
                 enabled=True,
                 weight=0.25,  # 25%资金
-                max_position=1500.0,
+                max_position=min(1500.0, MAX_TRADE_AMOUNT_USD),  # 不超过用户配置
                 min_confidence=0.6,
                 scan_interval=60,
                 priority=2
@@ -121,7 +122,7 @@ class UnifiedStrategyManager:
                 name='跨市场套利',
                 enabled=True,
                 weight=0.20,  # 20%资金
-                max_position=1000.0,
+                max_position=min(1000.0, MAX_TRADE_AMOUNT_USD),  # 不超过用户配置
                 min_confidence=0.6,
                 scan_interval=90,
                 priority=3
@@ -130,7 +131,7 @@ class UnifiedStrategyManager:
                 name='时间套利',
                 enabled=True,
                 weight=0.20,  # 20%资金
-                max_position=1000.0,
+                max_position=min(1000.0, MAX_TRADE_AMOUNT_USD),  # 不超过用户配置
                 min_confidence=0.6,
                 scan_interval=120,
                 priority=4
@@ -437,9 +438,19 @@ class UnifiedStrategyManager:
         return total_exposure < max_total_exposure and daily_pnl > self.risk_params['daily_loss_limit']
     
     def validate_signal(self, signal: UnifiedSignal, config: StrategyConfig) -> bool:
-        """验证信号"""
+        """验证信号 - 应用用户配置的风险限制"""
         # 检查置信度
         if signal.confidence < config.min_confidence:
+            return False
+        
+        # 检查仓位大小 - 应用用户配置的最大交易金额限制
+        if signal.position_size > MAX_TRADE_AMOUNT_USD:
+            self.logger.warning(f"信号仓位 ${signal.position_size:.2f} 超过用户配置限制 ${MAX_TRADE_AMOUNT_USD:.2f}")
+            return False
+        
+        # 检查预期收益 - 应用用户配置的止损百分比
+        if hasattr(signal, 'expected_return') and signal.expected_return < STOP_LOSS_PERCENTAGE / 100:
+            self.logger.warning(f"预期收益 {signal.expected_return:.1%} 低于用户止损阈值 {STOP_LOSS_PERCENTAGE}%")
             return False
         
         # 检查仓位大小
