@@ -457,11 +457,17 @@ class CrossMarketArbitrageStrategy:
         position_size = self.calculate_position_size(market, signal)
         
         try:
+            # 获取token_id（条件代币地址）
+            token_id = market.get('token_id') or market.get('id')
+            if not token_id:
+                self.logger.error(f"无法获取token_id: {market}")
+                return
+            
             order_id = self.trading_client.create_order(
-                market_id=market['id'],
-                price=self.get_market_price(market),
+                token_id=token_id,
+                side='BUY',
                 size=position_size,
-                side='buy'
+                price=self.get_market_price(market)
             )
             self.logger.info(f"买入订单: {order_id} - {market['question'][:30]}...")
             
@@ -473,11 +479,17 @@ class CrossMarketArbitrageStrategy:
         position_size = self.calculate_position_size(market, signal)
         
         try:
+            # 获取token_id（条件代币地址）
+            token_id = market.get('token_id') or market.get('id')
+            if not token_id:
+                self.logger.error(f"无法获取token_id: {market}")
+                return
+            
             order_id = self.trading_client.create_order(
-                market_id=market['id'],
-                price=self.get_market_price(market),
+                token_id=token_id,
+                side='SELL',
                 size=position_size,
-                side='sell'
+                price=self.get_market_price(market)
             )
             self.logger.info(f"卖出订单: {order_id} - {market['question'][:30]}...")
             

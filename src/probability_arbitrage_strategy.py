@@ -67,9 +67,40 @@ class ProbabilityArbitrageStrategy:
             },
             'election_2024_party': {
                 'keywords': ['election', 'president', 'party', 'control'],
-                'exclusion_patterns': ['republican', 'democrat', 'house', 'senate'],
+                'exclusion_patterns': ['republican', 'democrat', 'house', 'senate'],  # 保持原有排除模式
+                'regions': ['us', 'america', 'united states'],  # 限制地区
                 'markets': [],
                 'description': '2024选举党派控制',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            # 新增：伊朗政治事件组
+            'iran_political_transition': {
+                'keywords': ['reza pahlavi', 'enter', 'iran', 'return', 'opposition'],
+                'exclusion_patterns': ['forces', 'military', 'invasion', 'attack', 'troops'],
+                'regions': ['iran', 'tehran', 'persian'],
+                'markets': [],
+                'description': '伊朗政治过渡',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            # 新增：伊朗军事事件组
+            'iran_military_intervention': {
+                'keywords': ['forces', 'military', 'enter', 'iran', 'intervention'],
+                'exclusion_patterns': ['reza pahlavi', 'opposition', 'political', 'return'],
+                'regions': ['iran', 'tehran', 'persian'],
+                'markets': [],
+                'description': '伊朗军事干预',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0
+            },
+            # 新增：欧洲选举组
+            'european_parliamentary_elections': {
+                'keywords': ['election', 'parliamentary', 'party', 'seats', 'win', 'vote'],
+                'exclusion_patterns': ['us', 'america', 'iran', 'kharg', 'control'],
+                'regions': ['europe', 'slovenia', 'slovenian'],
+                'markets': [],
+                'description': '欧洲议会选举',
                 'mutual_exclusive': True,
                 'expected_total_probability': 1.0
             },
@@ -234,23 +265,106 @@ class ProbabilityArbitrageStrategy:
                 'expected_total_probability': 1.0
             },
             
-            # 国际事务 - 新增分组
-            'international_relations': {
-                'keywords': ['nato', 'eu', 'ukraine', 'china', 'taiwan', 'israel', 'palestine', 'russia', 'trade', 'treaty', 'sanction'],
-                'exclusion_patterns': ['join', 'leave', 'sign', 'impose', 'lift', 'recognize', '2024'],
+            # 地缘政治 - 重新设计的精细化分组
+            'geopolitical_iran_political': {
+                'keywords': ['iran', 'reza pahlavi', 'opposition', 'government', 'regime', 'political', 'return', 'exile', 'tehran'],
+                'exclusion_patterns': ['forces', 'military', 'intervention', 'invasion', 'attack', 'troops', 'us', 'israel'],
+                'event_types': ['political_transition', 'regime_change', 'opposition_activity', 'exile_return'],
+                'actors': ['individual', 'opposition', 'political_group'],
+                'regions': ['iran', 'middle_east'],
                 'markets': [],
-                'description': '国际关系',
-                'mutual_exclusive': True,
-                'expected_total_probability': 1.0
+                'description': '伊朗政治事件',
+                'mutual_exclusive': True,  # 政治结果通常互斥
+                'expected_total_probability': 1.0,
+                'requires_event_type_consistency': True,
+                'requires_actor_consistency': True,
+                'requires_regional_consistency': True
             },
-            'geopolitical_conflicts': {
-                'keywords': ['war', 'conflict', 'invasion', 'attack', 'escalation', 'ceasefire', 'peace', 'negotiation'],
-                'exclusion_patterns': ['end', 'start', 'continue', 'escalate', 'decrease', '2024'],
+            'geopolitical_iran_military': {
+                'keywords': ['iran', 'forces', 'military', 'intervention', 'invasion', 'attack', 'troops', 'war', 'conflict', 'strike'],
+                'exclusion_patterns': ['reza pahlavi', 'opposition', 'political', 'return', 'exile', 'diplomacy', 'negotiation'],
+                'event_types': ['military_intervention', 'armed_conflict', 'military_strike', 'invasion'],
+                'actors': ['military', 'foreign_power', 'state'],
+                'regions': ['iran', 'middle_east'],
                 'markets': [],
-                'description': '地缘政治冲突',
-                'mutual_exclusive': True,
-                'expected_total_probability': 1.0
+                'description': '伊朗军事干预',
+                'mutual_exclusive': True,  # 军事行动通常互斥
+                'expected_total_probability': 1.0,
+                'requires_event_type_consistency': True,
+                'requires_actor_consistency': True,
+                'requires_regional_consistency': True
             },
+            'geopolitical_iran_diplomatic': {
+                'keywords': ['iran', 'nuclear', 'deal', 'sanctions', 'diplomacy', 'negotiation', 'treaty', 'agreement', 'vienna', 'jcpoa'],
+                'exclusion_patterns': ['forces', 'military', 'attack', 'invasion', 'reza pahlavi', 'opposition'],
+                'event_types': ['diplomatic_negotiation', 'sanctions_policy', 'nuclear_agreement', 'international_relations'],
+                'actors': ['government', 'international_organization', 'diplomatic_body'],
+                'regions': ['iran', 'middle_east', 'global'],
+                'markets': [],
+                'description': '伊朗外交事务',
+                'mutual_exclusive': True,  # 外交结果通常互斥
+                'expected_total_probability': 1.0,
+                'requires_event_type_consistency': True,
+                'requires_actor_consistency': True,
+                'requires_regional_consistency': False
+            },
+            'geopolitical_taiwan_military': {
+                'keywords': ['taiwan', 'china', 'invasion', 'attack', 'military', 'conflict', 'strait', 'beijing', 'taipei', 'forces'],
+                'exclusion_patterns': ['trade', 'economy', 'diplomacy', 'relations', 'sanctions'],
+                'event_types': ['military_conflict', 'invasion', 'armed_attack', 'strait_conflict'],
+                'actors': ['military', 'state'],
+                'regions': ['taiwan', 'china', 'asia_pacific'],
+                'markets': [],
+                'description': '台海军事冲突',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0,
+                'requires_event_type_consistency': True,
+                'requires_actor_consistency': True,
+                'requires_regional_consistency': True
+            },
+            'geopolitical_ukraine_military': {
+                'keywords': ['russia', 'ukraine', 'ceasefire', 'peace', 'negotiation', 'war', 'conflict', 'invasion', 'moscow', 'kyiv', 'forces'],
+                'exclusion_patterns': ['trade', 'economy', 'diplomacy', 'relations'],
+                'event_types': ['military_conflict', 'ceasefire', 'peace_talk', 'armed_conflict'],
+                'actors': ['military', 'state', 'government'],
+                'regions': ['ukraine', 'russia', 'europe'],
+                'markets': [],
+                'description': '俄乌军事冲突',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0,
+                'requires_event_type_consistency': True,
+                'requires_actor_consistency': True,
+                'requires_regional_consistency': True
+            },
+            'geopolitical_middle_east_conflicts': {
+                'keywords': ['israel', 'palestine', 'gaza', 'hamas', 'hezbollah', 'syria', 'lebanon', 'war', 'conflict', 'ceasefire'],
+                'exclusion_patterns': ['iran', 'reza pahlavi', 'nuclear', 'diplomacy'],
+                'event_types': ['military_conflict', 'ceasefire', 'peace_talk', 'regional_war'],
+                'actors': ['military', 'non_state_actor', 'government'],
+                'regions': ['israel', 'palestine', 'gaza', 'middle_east'],
+                'markets': [],
+                'description': '中东地区冲突',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0,
+                'requires_event_type_consistency': True,
+                'requires_actor_consistency': True,
+                'requires_regional_consistency': True
+            },
+            'geopolitical_global_diplomacy': {
+                'keywords': ['nato', 'eu', 'alliance', 'treaty', 'sanction', 'trade war', 'diplomacy', 'summit', 'un'],
+                'exclusion_patterns': ['invasion', 'attack', 'ceasefire', 'war', 'forces', 'military'],
+                'event_types': ['diplomatic_relations', 'economic_sanctions', 'alliance_changes', 'international_cooperation'],
+                'actors': ['international_organization', 'state', 'alliance'],
+                'regions': ['global', 'europe', 'asia', 'america'],
+                'markets': [],
+                'description': '全球外交关系',
+                'mutual_exclusive': False,  # 不同地区的外交行动可以共存
+                'expected_total_probability': 1.5,
+                'requires_event_type_consistency': False,
+                'requires_actor_consistency': False,
+                'requires_regional_consistency': False
+            }
+            ,
             'global_economy': {
                 'keywords': ['recession', 'inflation', 'gdp', 'global', 'world bank', 'imf', 'crisis', 'recovery'],
                 'exclusion_patterns': ['enter', 'exit', 'avoid', 'experience', '2024', '2025'],
@@ -260,14 +374,72 @@ class ProbabilityArbitrageStrategy:
                 'expected_total_probability': 1.0
             },
             
-            # 体育比赛 - 扩展分组
-            'sports_nba': {
-                'keywords': ['nba', 'basketball', 'game', 'match', 'championship', 'finals'],
-                'exclusion_patterns': ['win', 'lose', 'cover', 'spread', 'lakers', 'warriors', 'celtics'],
+            # 体育比赛 - 重新设计的精细化分组
+            'nba_mvp_awards': {
+                'keywords': ['nba', 'mvp', 'most valuable player', 'award', 'trophy', 'devin booker', 'lebron james', 'jokic', 'embiid'],
+                'exclusion_patterns': ['finals', 'championship', 'team', 'franchise', 'win', 'lose', 'game'],
+                'event_types': ['individual_award', 'mvp', 'player_honor'],
+                'award_categories': ['mvp', 'most valuable player'],
                 'markets': [],
-                'description': 'NBA比赛结果',
-                'mutual_exclusive': True,
-                'expected_total_probability': 1.0
+                'description': 'NBA个人MVP奖项',
+                'mutual_exclusive': True,  # 只有一个MVP
+                'expected_total_probability': 1.0,
+                'requires_event_type_consistency': True
+            },
+            'nba_championship': {
+                'keywords': ['nba', 'finals', 'championship', 'title', 'winner', 'team', 'franchise', 'portland trail blazers', 'lakers', 'warriors', 'celtics'],
+                'exclusion_patterns': ['mvp', 'player', 'individual', 'award', 'trophy', 'devin booker', 'lebron james'],
+                'event_types': ['team_achievement', 'championship', 'title'],
+                'award_categories': [],
+                'markets': [],
+                'description': 'NBA总冠军',
+                'mutual_exclusive': True,  # 只有一个冠军
+                'expected_total_probability': 1.0,
+                'requires_event_type_consistency': True
+            },
+            'nba_player_awards': {
+                'keywords': ['nba', 'player', 'rookie', 'defensive', 'sixth man', 'most improved', 'all star', 'award', 'trophy'],
+                'exclusion_patterns': ['finals', 'championship', 'team', 'franchise', 'mvp'],
+                'event_types': ['individual_award', 'player_honor', 'rookie_award', 'defensive_award'],
+                'award_categories': ['rookie', 'defensive player', 'sixth man', 'most improved'],
+                'markets': [],
+                'description': 'NBA其他球员奖项',
+                'mutual_exclusive': False,  # 不同奖项可以不同人获得
+                'expected_total_probability': 1.5,
+                'requires_event_type_consistency': False
+            },
+            'nba_season_performance': {
+                'keywords': ['nba', 'season', 'record', 'standing', 'playoffs', 'games', 'wins', 'losses', 'performance'],
+                'exclusion_patterns': ['mvp', 'award', 'trophy', 'championship', 'finals'],
+                'event_types': ['season_metrics', 'team_performance', 'playoff_qualification'],
+                'award_categories': [],
+                'markets': [],
+                'description': 'NBA赛季表现和记录',
+                'mutual_exclusive': False,  # 不同表现指标不互斥
+                'expected_total_probability': 1.2,
+                'requires_event_type_consistency': False
+            },
+            'nba_game_results': {
+                'keywords': ['nba', 'game', 'match', 'win', 'lose', 'beat', 'defeat', 'victory', 'score', 'points'],
+                'exclusion_patterns': ['mvp', 'award', 'trophy', 'championship', 'season', 'playoffs'],
+                'event_types': ['single_game', 'game_result', 'match_outcome'],
+                'award_categories': [],
+                'markets': [],
+                'description': 'NBA单场比赛结果',
+                'mutual_exclusive': True,  # 单场比赛结果互斥
+                'expected_total_probability': 1.0,
+                'requires_event_type_consistency': True
+            },
+            'nba_playoff_predictions': {
+                'keywords': ['nba', 'playoffs', 'postseason', 'series', 'advance', 'eliminate', 'bracket'],
+                'exclusion_patterns': ['mvp', 'award', 'trophy', 'regular season', 'game'],
+                'event_types': ['playoff_series', 'postseason', 'bracket_predictions'],
+                'award_categories': [],
+                'markets': [],
+                'description': 'NBA季后赛预测',
+                'mutual_exclusive': True,  # 季后赛结果互斥
+                'expected_total_probability': 1.0,
+                'requires_event_type_consistency': True
             },
             'sports_nfl': {
                 'keywords': ['nfl', 'american football', 'super bowl', 'playoffs', 'chiefs', 'eagles', '49ers'],
@@ -286,30 +458,83 @@ class ProbabilityArbitrageStrategy:
                 'expected_total_probability': 0.8  # 调整预期概率
             },
             
-            # 加密货币 - 扩展分组
-            'crypto_btc_levels': {
-                'keywords': ['bitcoin', 'BTC', 'price', 'reach', '100k', '150k', '200k', '50k', '25k'],
-                'exclusion_patterns': ['100k', '150k', '200k', '50k', '25k', 'end of year', '2024'],
+            # 加密货币 - 重新设计的精细化分组
+            'crypto_price_levels_btc': {
+                'keywords': ['bitcoin', 'BTC', 'price', 'reach', 'above', 'below', '65,000', '70,000', '60,000', '75,000', '80,000', '50,000', '100k', '150k', '200k'],
+                'exclusion_patterns': ['up', 'down', 'rise', 'fall', 'direction', 'trend', 'volatile', 'swing'],
+                'event_types': ['price_level', 'price_target', 'price_threshold'],
+                'time_sensitivity': ['daily', 'weekly', 'monthly', 'quarterly'],
                 'markets': [],
-                'description': '比特币价格水平',
-                'mutual_exclusive': False,  # 不是完全互斥
-                'expected_total_probability': 0.8  # 考虑其他可能性
+                'description': '比特币具体价格水平',
+                'mutual_exclusive': False,  # 不同价格水平不互斥
+                'expected_total_probability': 1.2,  # 考虑多个价格水平的可能性
+                'requires_time_consistency': False
             },
-            'crypto_eth_levels': {
-                'keywords': ['ethereum', 'ETH', 'price', 'reach', '5k', '10k', '3k', '8k'],
-                'exclusion_patterns': ['5k', '10k', '3k', '8k', 'end of year', '2024'],
+            'crypto_direction_btc': {
+                'keywords': ['bitcoin', 'BTC', 'up', 'down', 'rise', 'fall', 'direction', 'trend', 'bullish', 'bearish'],
+                'exclusion_patterns': ['65,000', '70,000', '60,000', '75,000', '80,000', '50,000', '100k', 'specific', 'level', 'target'],
+                'event_types': ['price_direction', 'movement', 'trend'],
+                'time_sensitivity': ['daily', 'weekly', 'monthly'],
                 'markets': [],
-                'description': '以太坊价格水平',
+                'description': '比特币涨跌方向',
+                'mutual_exclusive': True,  # 涨跌互斥
+                'expected_total_probability': 1.0,
+                'requires_time_consistency': True  # 需要时间一致性
+            },
+            'crypto_volatility_btc': {
+                'keywords': ['bitcoin', 'BTC', 'volatile', 'volatility', 'swing', 'fluctuation', 'range', 'choppy', 'stable'],
+                'exclusion_patterns': ['up', 'down', 'rise', 'fall', 'specific', 'level', 'target', 'direction'],
+                'event_types': ['volatility', 'price_stability', 'range_bound'],
+                'time_sensitivity': ['daily', 'weekly', 'monthly'],
+                'markets': [],
+                'description': '比特币波动性',
+                'mutual_exclusive': False,  # 不同波动性状态不互斥
+                'expected_total_probability': 1.0,
+                'requires_time_consistency': False
+            },
+            'crypto_price_levels_eth': {
+                'keywords': ['ethereum', 'ETH', 'price', 'reach', 'above', 'below', '5k', '10k', '3k', '8k', '4k', '6k', '2k'],
+                'exclusion_patterns': ['up', 'down', 'rise', 'fall', 'direction', 'trend', 'volatile', 'swing'],
+                'event_types': ['price_level', 'price_target', 'price_threshold'],
+                'time_sensitivity': ['daily', 'weekly', 'monthly', 'quarterly'],
+                'markets': [],
+                'description': '以太坊具体价格水平',
                 'mutual_exclusive': False,
-                'expected_total_probability': 0.8
+                'expected_total_probability': 1.2,
+                'requires_time_consistency': False
+            },
+            'crypto_direction_eth': {
+                'keywords': ['ethereum', 'ETH', 'up', 'down', 'rise', 'fall', 'direction', 'trend', 'bullish', 'bearish'],
+                'exclusion_patterns': ['5k', '10k', '3k', '8k', '4k', '6k', '2k', 'specific', 'level', 'target'],
+                'event_types': ['price_direction', 'movement', 'trend'],
+                'time_sensitivity': ['daily', 'weekly', 'monthly'],
+                'markets': [],
+                'description': '以太坊涨跌方向',
+                'mutual_exclusive': True,
+                'expected_total_probability': 1.0,
+                'requires_time_consistency': True
             },
             'crypto_regulation': {
-                'keywords': ['crypto', 'bitcoin', 'etf', 'sec', 'approval', 'regulation', 'ban', 'china', 'us'],
-                'exclusion_patterns': ['approve', 'reject', 'delay', 'implement', '2024'],
+                'keywords': ['crypto', 'bitcoin', 'ethereum', 'etf', 'sec', 'approval', 'regulation', 'ban', 'china', 'us', 'eu'],
+                'exclusion_patterns': ['price', 'up', 'down', 'rise', 'fall', 'volatility'],
+                'event_types': ['regulatory_action', 'policy_change', 'legal_framework'],
+                'time_sensitivity': ['monthly', 'quarterly', 'yearly'],
                 'markets': [],
-                'description': '加密货币监管',
-                'mutual_exclusive': True,
-                'expected_total_probability': 1.0
+                'description': '加密货币监管政策',
+                'mutual_exclusive': True,  # 不同的监管决定通常互斥
+                'expected_total_probability': 1.0,
+                'requires_time_consistency': False
+            },
+            'crypto_adoption': {
+                'keywords': ['adoption', 'institutional', 'mainstream', 'integration', 'payment', 'acceptance', 'usage'],
+                'exclusion_patterns': ['price', 'volatility', 'regulation'],
+                'event_types': ['adoption_milestone', 'institutional_investment', 'mainstream_acceptance'],
+                'time_sensitivity': ['quarterly', 'yearly'],
+                'markets': [],
+                'description': '加密货币采用和普及',
+                'mutual_exclusive': False,  # 不同采用指标不互斥
+                'expected_total_probability': 1.5,
+                'requires_time_consistency': False
             },
             
             # 经济数据 - 扩展分组
@@ -356,6 +581,74 @@ class ProbabilityArbitrageStrategy:
                 'description': '气候天气事件',
                 'mutual_exclusive': True,
                 'expected_total_probability': 1.0
+            },
+            
+            # 体育博彩 - 重新设计的精细化分组
+            'sports_game_results': {
+                'keywords': ['vs', 'win', 'lose', 'beat', 'defeat', 'victory', 'winner', 'loser', 'game', 'match'],
+                'exclusion_patterns': ['over', 'under', 'o/u', 'total', 'spread', 'cover', 'handicap', 'points', 'player'],
+                'betting_types': ['moneyline', 'match_result', 'head_to_head'],
+                'event_types': ['game_outcome', 'winner_prediction'],
+                'markets': [],
+                'description': '体育比赛胜负结果',
+                'mutual_exclusive': True,  # 只有一个赢家
+                'expected_total_probability': 1.0,
+                'requires_betting_type_consistency': True
+            },
+            'sports_totals_betting': {
+                'keywords': ['over', 'under', 'o/u', 'total', 'points', 'combined', 'score', 'sum'],
+                'exclusion_patterns': ['win', 'lose', 'beat', 'defeat', 'victory', 'spread', 'cover', 'handicap', 'player'],
+                'betting_types': ['over_under', 'totals', 'points_betting'],
+                'event_types': ['total_points', 'score_prediction'],
+                'markets': [],
+                'description': '体育总分博彩(Over/Under)',
+                'mutual_exclusive': True,  # Over/Under 互斥
+                'expected_total_probability': 1.0,
+                'requires_betting_type_consistency': True
+            },
+            'sports_spread_betting': {
+                'keywords': ['spread', 'cover', 'handicap', 'points', '-', '+', 'advantage', 'disadvantage'],
+                'exclusion_patterns': ['over', 'under', 'o/u', 'total', 'win', 'lose', 'beat', 'defeat', 'player'],
+                'betting_types': ['point_spread', 'handicap_betting', 'spread_betting'],
+                'event_types': ['spread_coverage', 'handicap_result'],
+                'markets': [],
+                'description': '体育让分盘博彩',
+                'mutual_exclusive': True,  # 让分盘互斥
+                'expected_total_probability': 1.0,
+                'requires_betting_type_consistency': True
+            },
+            'sports_player_props': {
+                'keywords': ['player', 'score', 'points', 'rebounds', 'assists', '30+', '20+', 'double', 'triple', 'performance'],
+                'exclusion_patterns': ['vs', 'win', 'lose', 'beat', 'defeat', 'over', 'under', 'spread', 'cover'],
+                'betting_types': ['player_props', 'individual_performance', 'player_betting'],
+                'event_types': ['player_performance', 'individual_stats'],
+                'markets': [],
+                'description': '体育球员表现博彩',
+                'mutual_exclusive': False,  # 不同球员表现可以同时发生
+                'expected_total_probability': 1.5,
+                'requires_betting_type_consistency': False
+            },
+            'sports_team_props': {
+                'keywords': ['team', 'record', 'standing', 'season', 'playoffs', 'championship', 'title', 'franchise'],
+                'exclusion_patterns': ['vs', 'win', 'lose', 'beat', 'defeat', 'over', 'under', 'spread', 'player'],
+                'betting_types': ['team_props', 'franchise_betting', 'season_betting'],
+                'event_types': ['team_performance', 'season_achievements'],
+                'markets': [],
+                'description': '体育团队表现博彩',
+                'mutual_exclusive': False,  # 不同团队指标可以同时达成
+                'expected_total_probability': 1.5,
+                'requires_betting_type_consistency': False
+            },
+            'sports_live_betting': {
+                'keywords': ['live', 'in-game', 'real-time', 'current', 'moment', 'now', 'playing'],
+                'exclusion_patterns': ['pre-game', 'before', 'preview', 'prediction'],
+                'betting_types': ['live_betting', 'in_play', 'real_time'],
+                'event_types': ['live_events', 'in_game_actions'],
+                'markets': [],
+                'description': '体育现场博彩',
+                'mutual_exclusive': True,  # 现场事件通常互斥
+                'expected_total_probability': 1.0,
+                'requires_betting_type_consistency': True
             }
         }
         
@@ -588,7 +881,7 @@ class ProbabilityArbitrageStrategy:
         return min(quality, 1.0)
     
     def find_best_matching_group(self, question: str, market: Dict) -> Optional[str]:
-        """找到最佳匹配的组 - 智能算法版本"""
+        """找到最佳匹配的组 - 增强版本，增加NBA事件类型检查"""
         best_group = None
         best_score = 0.0
         
@@ -619,15 +912,248 @@ class ProbabilityArbitrageStrategy:
                 if best_group is None or self.is_more_specific_group(group_name, best_group):
                     best_group = group_name
         
-        # 3. 市场质量调整 (25%权重)
+        # 2. 体育博彩事件类型一致性检查 (15%权重)
+        if best_group and 'sports' in best_group:
+            if not self.validate_single_sports_betting_consistency(question, best_group):
+                self.logger.debug(f"体育博彩市场 {question[:30]}... 与组 {best_group} 不一致")
+                return None
+        
+        # 3. 地缘政治事件类型一致性检查 (15%权重)
+        if best_group and 'geopolitical' in best_group:
+            if not self.validate_single_geopolitical_event_consistency(question, best_group):
+                self.logger.debug(f"地缘政治市场 {question[:30]}... 与组 {best_group} 不一致")
+                return None
+        
+        # 4. NBA事件类型一致性检查 (10%权重)
+        if best_group and 'nba' in best_group:
+            if not self.validate_single_nba_event_consistency(question, best_group):
+                self.logger.debug(f"NBA市场 {question[:30]}... 与组 {best_group} 不一致")
+                return None
+        
+        # 5. 加密货币事件类型一致性检查 (10%权重)
+        if best_group and 'crypto' in best_group:
+            if not self.validate_single_crypto_event_consistency(question, best_group):
+                self.logger.debug(f"加密货币市场 {question[:30]}... 与组 {best_group} 不一致")
+                return None
+        
+        # 6. 地区一致性检查 (5%权重) - 针对地缘政治事件
+        if best_group and 'geopolitical' in best_group:
+            if not self.validate_single_market_regional_consistency(question, best_group):
+                self.logger.debug(f"市场 {question[:30]}... 与组 {best_group} 地区不一致")
+                return None
+        
+        # 7. 市场质量调整 (5%权重)
         if best_group:
             market_quality = self.calculate_market_quality(market)
-            adjusted_score = best_score * (0.75 + market_quality * 0.25)
+            adjusted_score = best_score * (0.95 + market_quality * 0.05)
             
             if adjusted_score > 0.2:
                 return best_group
         
         return best_group
+    
+    def validate_single_sports_betting_consistency(self, question: str, group_name: str) -> bool:
+        """验证单个体育博彩市场与目标组的一致性"""
+        # 提取问题的博彩类型
+        betting_types = self.extract_sports_betting_types([{'question': question}])
+        
+        # 检查组的博彩类型要求
+        group_info = self.mutually_exclusive_groups.get(group_name, {})
+        expected_betting_types = group_info.get('betting_types', [])
+        
+        # 如果没有指定博彩类型，允许通过
+        if not expected_betting_types:
+            return True
+        
+        # 检查博彩类型是否匹配
+        for betting_type in betting_types:
+            if betting_type in expected_betting_types:
+                return True
+        
+        # 检查是否有冲突的博彩类型
+        if 'moneyline' in betting_types and 'over_under' in expected_betting_types:
+            return False  # 胜负盘不应该匹配到大小盘组
+        
+        if 'over_under' in betting_types and 'moneyline' in expected_betting_types:
+            return False  # 大小盘不应该匹配到胜负盘组
+        
+        if 'point_spread' in betting_types and 'player_props' in expected_betting_types:
+            return False  # 让分盘不应该匹配到球员盘组
+        
+        return True
+    
+    def validate_single_geopolitical_event_consistency(self, question: str, group_name: str) -> bool:
+        """验证单个地缘政治市场与目标组的一致性"""
+        # 提取问题的事件类型
+        event_types = self.extract_geopolitical_event_types([{'question': question}])
+        
+        # 检查组的事件类型要求
+        group_info = self.mutually_exclusive_groups.get(group_name, {})
+        expected_event_types = group_info.get('event_types', [])
+        
+        # 如果没有指定事件类型，允许通过
+        if not expected_event_types:
+            return True
+        
+        # 检查事件类型是否匹配
+        for event_type in event_types:
+            if event_type in expected_event_types:
+                return True
+        
+        # 检查是否有冲突的事件类型
+        if 'political_transition' in event_types and 'military_intervention' in expected_event_types:
+            return False  # 政治过渡不应该匹配到军事干预组
+        
+        if 'military_intervention' in event_types and 'political_transition' in expected_event_types:
+            return False  # 军事干预不应该匹配到政治过渡组
+        
+        # 检查行为主体一致性
+        if not self.validate_single_geopolitical_actor_consistency(question, group_name):
+            return False
+        
+        return True
+    
+    def validate_single_geopolitical_actor_consistency(self, question: str, group_name: str) -> bool:
+        """验证单个地缘政治市场的行为主体一致性"""
+        # 提取问题的行为主体
+        actor_keywords = {
+            'individual': ['reza pahlavi', 'opposition', 'exile', 'person'],
+            'military': ['forces', 'military', 'troops', 'army', 'soldiers'],
+            'government': ['government', 'regime', 'state', 'administration'],
+            'international_organization': ['nato', 'eu', 'un', 'international'],
+            'non_state_actor': ['hamas', 'hezbollah', 'opposition', 'rebels']
+        }
+        
+        question_lower = question.lower()
+        detected_actors = []
+        
+        for actor, keywords in actor_keywords.items():
+            if any(keyword in question_lower for keyword in keywords):
+                detected_actors.append(actor)
+        
+        if not detected_actors:
+            return True  # 没有检测到主体，允许通过
+        
+        # 检查组的行为主体要求
+        group_info = self.mutually_exclusive_groups.get(group_name, {})
+        expected_actors = group_info.get('actors', [])
+        
+        if not expected_actors:
+            return True  # 没有指定主体要求，允许通过
+        
+        # 检查主体是否匹配
+        for actor in detected_actors:
+            if actor in expected_actors:
+                return True
+        
+        # 检查是否有冲突的主体
+        if 'individual' in detected_actors and 'military' in expected_actors:
+            return False  # 个人主体不应该匹配到军事组
+        
+        if 'military' in detected_actors and 'individual' in expected_actors:
+            return False  # 军事主体不应该匹配到个人组
+        
+        return True
+    
+    def validate_single_nba_event_consistency(self, question: str, group_name: str) -> bool:
+        """验证单个NBA市场与目标组的一致性"""
+        # 提取问题的事件类型
+        event_types = self.extract_sports_event_types([{'question': question}])
+        
+        # 检查组的事件类型要求
+        group_info = self.mutually_exclusive_groups.get(group_name, {})
+        expected_event_types = group_info.get('event_types', [])
+        
+        # 如果没有指定事件类型，允许通过
+        if not expected_event_types:
+            return True
+        
+        # 检查事件类型是否匹配
+        for event_type in event_types:
+            if event_type in expected_event_types:
+                return True
+        
+        # 检查是否有冲突的事件类型
+        if 'mvp_award' in event_types and 'championship' in expected_event_types:
+            return False  # MVP奖项不应该匹配到冠军组
+        
+        if 'championship' in event_types and 'mvp_award' in expected_event_types:
+            return False  # 冠军事件不应该匹配到MVP组
+        
+        # 检查维度一致性（个人 vs 团队）
+        individual_keywords = ['mvp', 'player', 'rookie', 'defensive', 'sixth man', 'most improved', 'devin booker', 'lebron james', 'jokic', 'embiid']
+        team_keywords = ['team', 'franchise', 'championship', 'finals', 'lakers', 'warriors', 'celtics', 'portland trail blazers']
+        
+        question_lower = question.lower()
+        individual_count = sum(1 for kw in individual_keywords if kw in question_lower)
+        team_count = sum(1 for kw in team_keywords if kw in question_lower)
+        
+        # 如果是个人事件，不应该匹配到团队组
+        if individual_count > team_count and 'championship' in expected_event_types:
+            return False
+        
+        # 如果是团队事件，不应该匹配到个人组
+        if team_count > individual_count and 'mvp' in expected_event_types:
+            return False
+        
+        return True
+    
+    def validate_single_crypto_event_consistency(self, question: str, group_name: str) -> bool:
+        """验证单个加密货币市场与目标组的一致性"""
+        # 提取问题的事件类型
+        event_types = self.extract_crypto_event_types([{'question': question}])
+        
+        # 检查组的事件类型要求
+        group_info = self.mutually_exclusive_groups.get(group_name, {})
+        expected_event_types = group_info.get('event_types', [])
+        
+        # 如果没有指定事件类型，允许通过
+        if not expected_event_types:
+            return True
+        
+        # 检查事件类型是否匹配
+        for event_type in event_types:
+            if event_type in expected_event_types:
+                return True
+        
+        # 检查是否有冲突的事件类型
+        if 'price_level' in event_types and 'price_direction' in expected_event_types:
+            return False  # 价格水平事件不应该匹配到价格方向组
+        
+        if 'price_direction' in event_types and 'price_level' in expected_event_types:
+            return False  # 价格方向事件不应该匹配到价格水平组
+        
+        return True
+    
+    def validate_single_market_regional_consistency(self, question: str, group_name: str) -> bool:
+        """验证单个市场与目标组的地区一致性"""
+        # 定义各组对应的地区
+        group_regions = {
+            'geopolitical_taiwan': ['taiwan', 'taipei', 'china', 'beijing', 'strait'],
+            'geopolitical_ukraine': ['ukraine', 'kyiv', 'russia', 'moscow', 'europe'],
+            'geopolitical_middle_east': ['israel', 'palestine', 'gaza', 'iran', 'syria', 'lebanon', 'hamas', 'hezbollah'],
+            'geopolitical_global_tensions': ['nato', 'eu', 'un', 'global', 'worldwide']
+        }
+        
+        if group_name not in group_regions:
+            return True  # 非地缘政治组，不需要地区检查
+        
+        question_lower = question.lower()
+        expected_regions = group_regions[group_name]
+        
+        # 检查问题是否包含预期的地区关键词
+        has_expected_region = any(region in question_lower for region in expected_regions)
+        
+        # 检查是否包含其他地区的关键词（冲突检查）
+        all_regions = set()
+        for regions in group_regions.values():
+            all_regions.update(regions)
+        
+        other_regions = all_regions - set(expected_regions)
+        has_other_region = any(region in question_lower for region in other_regions)
+        
+        # 如果有预期地区且没有其他地区，则通过验证
+        return has_expected_region and not has_other_region
     
     def is_more_specific_group(self, group1: str, group2: str) -> bool:
         """判断哪个分组更具体"""
@@ -648,26 +1174,36 @@ class ProbabilityArbitrageStrategy:
         return priority1 > priority2
     
     def calculate_keyword_score(self, question: str, group_info: Dict) -> float:
-        """计算关键词匹配分数"""
-        score = 0.0
+        """计算关键词匹配分数 - 平衡版本，既排除假阳性又保留合理套利"""
+        question_lower = question.lower()
         
         # 检查是否是动态组（没有keywords键）
         if 'keywords' not in group_info:
             return 0.0
         
+        # 地区一致性检查 - 只对有明确地区要求的组进行检查
+        if 'regions' in group_info and group_info['regions']:
+            required_regions = group_info['regions']
+            region_match = any(region in question_lower for region in required_regions)
+            if not region_match:
+                # 如果不包含要求的地区关键词，降低分数但不是完全排除
+                return 0.08  # 较低的分数，但不是0
+        
         # 关键词匹配分数 (60%)
-        keyword_matches = sum(1 for kw in group_info['keywords'] if kw in question)
+        keyword_matches = sum(1 for kw in group_info['keywords'] if kw in question_lower)
         keyword_score = (keyword_matches / len(group_info['keywords'])) * 0.6
         
-        # 排除模式匹配分数 (40%)
+        # 排除模式匹配分数 (40%) - 只对强排除模式进行严格排除
         exclusion_patterns = group_info.get('exclusion_patterns', [])
         if exclusion_patterns:
-            exclusion_matches = sum(1 for pattern in exclusion_patterns if pattern in question)
-            exclusion_score = (exclusion_matches / len(exclusion_patterns)) * 0.4
-        else:
-            exclusion_score = 0.0
+            exclusion_matches = sum(1 for pattern in exclusion_patterns if pattern in question_lower)
+            # 如果匹配到强排除模式，大幅降低分数
+            if exclusion_matches >= 2:  # 需要匹配至少2个排除模式才严格排除
+                return 0.02
+            elif exclusion_matches == 1:
+                keyword_score *= 0.3  # 匹配1个排除模式，降低分数
         
-        return keyword_score + exclusion_score
+        return keyword_score
     
     def calculate_semantic_similarity_scores(self, question: str) -> Dict[str, float]:
         """计算语义相似度分数"""
@@ -848,12 +1384,576 @@ class ProbabilityArbitrageStrategy:
         
         return dynamic_groups
     
+    def validate_geopolitical_event_consistency(self, markets: List[Dict]) -> bool:
+        """验证地缘政治事件的一致性 - 确保事件类型、主体和地区匹配"""
+        if len(markets) < 2:
+            return True
+        
+        # 1. 检查事件类型一致性
+        event_types = self.extract_geopolitical_event_types(markets)
+        if not self.validate_geopolitical_event_type_compatibility(event_types):
+            self.logger.debug(f"地缘政治事件类型不兼容: {event_types}")
+            return False
+        
+        # 2. 检查行为主体一致性
+        if not self.validate_geopolitical_actor_consistency(markets):
+            self.logger.debug("地缘政治事件主体不一致")
+            return False
+        
+        # 3. 检查地区一致性
+        if not self.validate_regional_consistency(markets):
+            self.logger.debug("地缘政治事件地区不一致")
+            return False
+        
+        return True
+    
+    def extract_geopolitical_event_types(self, markets: List[Dict]) -> List[str]:
+        """提取地缘政治事件类型"""
+        event_type_keywords = {
+            'political_transition': ['political', 'regime', 'opposition', 'government', 'return', 'exile', 'reza pahlavi'],
+            'military_intervention': ['forces', 'military', 'intervention', 'invasion', 'attack', 'troops', 'war', 'strike'],
+            'diplomatic_negotiation': ['nuclear', 'deal', 'sanctions', 'diplomacy', 'negotiation', 'treaty', 'agreement', 'jcpoa'],
+            'armed_conflict': ['war', 'conflict', 'ceasefire', 'peace', 'battle', 'fighting'],
+            'international_relations': ['nato', 'eu', 'alliance', 'summit', 'un', 'cooperation']
+        }
+        
+        market_event_types = []
+        for market in markets:
+            question = market.get('question', '').lower()
+            detected_types = []
+            
+            for event_type, keywords in event_type_keywords.items():
+                if any(keyword in question for keyword in keywords):
+                    detected_types.append(event_type)
+            
+            if not detected_types:
+                detected_types.append('unknown')
+            
+            market_event_types.extend(detected_types)
+        
+        return list(set(market_event_types))
+    
+    def validate_geopolitical_event_type_compatibility(self, event_types: List[str]) -> bool:
+        """验证地缘政治事件类型的兼容性"""
+        # 定义兼容的事件类型组合
+        compatible_combinations = {
+            frozenset(['political_transition']),  # 纯政治过渡
+            frozenset(['military_intervention']),  # 纯军事干预
+            frozenset(['diplomatic_negotiation']),  # 纯外交谈判
+            frozenset(['armed_conflict']),  # 纯武装冲突
+            frozenset(['international_relations']),  # 纯国际关系
+            frozenset(['unknown']),  # 未知类型
+            # 某些组合可能兼容
+            frozenset(['political_transition', 'diplomatic_negotiation']),  # 政治过渡与外交谈判
+            frozenset(['military_intervention', 'armed_conflict']),  # 军事干预与武装冲突
+            frozenset(['diplomatic_negotiation', 'international_relations']),  # 外交谈判与国际关系
+        }
+        
+        # 检查当前组合是否兼容
+        event_types_set = frozenset(event_types)
+        return event_types_set in compatible_combinations
+    
+    def validate_geopolitical_actor_consistency(self, markets: List[Dict]) -> bool:
+        """验证地缘政治事件的主体一致性"""
+        actor_keywords = {
+            'individual': ['reza pahlavi', 'opposition', 'exile', 'person'],
+            'military': ['forces', 'military', 'troops', 'army', 'soldiers'],
+            'government': ['government', 'regime', 'state', 'administration'],
+            'international_organization': ['nato', 'eu', 'un', 'international'],
+            'non_state_actor': ['hamas', 'hezbollah', 'opposition', 'rebels']
+        }
+        
+        market_actors = []
+        for market in markets:
+            question = market.get('question', '').lower()
+            detected_actors = []
+            
+            for actor, keywords in actor_keywords.items():
+                if any(keyword in question for keyword in keywords):
+                    detected_actors.append(actor)
+            
+            if not detected_actors:
+                detected_actors.append('unknown')
+            
+            market_actors.extend(detected_actors)
+        
+        unique_actors = set(actor for actor in market_actors if actor != 'unknown')
+        
+        # 如果所有都是unknown，允许通过
+        if len(unique_actors) == 0:
+            return True
+        
+        # 如果只有一个主体类型，通过验证
+        if len(unique_actors) == 1:
+            return True
+        
+        # 检查是否是兼容的主体组合
+        compatible_actor_combinations = {
+            frozenset(['government', 'military']),  # 政府与军队
+            frozenset(['international_organization', 'government']),  # 国际组织与政府
+            frozenset(['non_state_actor', 'military']),  # 非国家行为体与军队
+        }
+        
+        return frozenset(unique_actors) in compatible_actor_combinations
+    
+    def validate_sports_betting_consistency(self, markets: List[Dict]) -> bool:
+        """验证体育博彩事件的一致性 - 确保博彩类型和事件匹配"""
+        if len(markets) < 2:
+            return True
+        
+        # 1. 检查博彩类型一致性
+        betting_types = self.extract_sports_betting_types(markets)
+        if not self.validate_sports_betting_type_compatibility(betting_types):
+            self.logger.debug(f"体育博彩类型不兼容: {betting_types}")
+            return False
+        
+        # 2. 检查事件一致性（同一比赛/同一事件）
+        if not self.validate_sports_event_consistency(markets):
+            self.logger.debug("体育博彩事件不一致")
+            return False
+        
+        # 3. 检查博彩市场互斥性
+        if not self.validate_betting_market_mutual_exclusivity(markets):
+            self.logger.debug("体育博彩市场互斥性检查失败")
+            return False
+        
+        return True
+    
+    def extract_sports_betting_types(self, markets: List[Dict]) -> List[str]:
+        """提取体育博彩类型"""
+        betting_type_keywords = {
+            'moneyline': ['vs', 'win', 'lose', 'beat', 'defeat', 'victory', 'winner', 'loser'],
+            'over_under': ['over', 'under', 'o/u', 'total', 'points', 'combined', 'score', 'sum'],
+            'point_spread': ['spread', 'cover', 'handicap', 'points', '-', '+', 'advantage', 'disadvantage'],
+            'player_props': ['player', 'score', 'points', 'rebounds', 'assists', '30+', '20+', 'double', 'triple'],
+            'team_props': ['team', 'record', 'standing', 'season', 'playoffs', 'championship', 'title'],
+            'live_betting': ['live', 'in-game', 'real-time', 'current', 'moment', 'now', 'playing']
+        }
+        
+        market_betting_types = []
+        for market in markets:
+            question = market.get('question', '').lower()
+            detected_types = []
+            
+            for betting_type, keywords in betting_type_keywords.items():
+                if any(keyword in question for keyword in keywords):
+                    detected_types.append(betting_type)
+            
+            if not detected_types:
+                detected_types.append('unknown')
+            
+            market_betting_types.extend(detected_types)
+        
+        return list(set(market_betting_types))
+    
+    def validate_sports_betting_type_compatibility(self, betting_types: List[str]) -> bool:
+        """验证体育博彩类型的兼容性"""
+        # 定义兼容的博彩类型组合
+        compatible_combinations = {
+            frozenset(['moneyline']),  # 纯胜负盘
+            frozenset(['over_under']),  # 纯大小盘
+            frozenset(['point_spread']),  # 纯让分盘
+            frozenset(['player_props']),  # 纯球员盘
+            frozenset(['team_props']),  # 纯团队盘
+            frozenset(['live_betting']),  # 纯现场博彩
+            frozenset(['unknown']),  # 未知类型
+            # 某些组合可能兼容
+            frozenset(['player_props', 'team_props']),  # 球员与团队表现
+            frozenset(['live_betting', 'moneyline']),  # 现场与胜负
+            frozenset(['live_betting', 'over_under']),  # 现场与大小
+        }
+        
+        # 检查当前组合是否兼容
+        betting_types_set = frozenset(betting_types)
+        return betting_types_set in compatible_combinations
+    
+    def validate_betting_market_mutual_exclusivity(self, markets: List[Dict]) -> bool:
+        """验证博彩市场的互斥性"""
+        if len(markets) < 2:
+            return True
+        
+        # 提取每个市场的博彩类型
+        market_types = []
+        for market in markets:
+            question = market.get('question', '').lower()
+            
+            if 'vs' in question and not any(x in question for x in ['over', 'under', 'o/u', 'total', 'spread', 'cover']):
+                market_types.append('moneyline')
+            elif any(x in question for x in ['over', 'under', 'o/u', 'total']):
+                market_types.append('over_under')
+            elif 'spread' in question or 'cover' in question or 'handicap' in question:
+                market_types.append('point_spread')
+            elif 'player' in question and any(x in question for x in ['score', 'points', 'rebounds', 'assists']):
+                market_types.append('player_props')
+            else:
+                market_types.append('unknown')
+        
+        unique_types = set(market_types)
+        
+        # 如果所有市场都是同一类型，检查是否互斥
+        if len(unique_types) == 1:
+            market_type = list(unique_types)[0]
+            
+            if market_type == 'moneyline':
+                # 胜负盘通常是互斥的（A赢 vs B赢）
+                return True
+            elif market_type == 'over_under':
+                # Over/Under 是互斥的
+                return True
+            elif market_type == 'point_spread':
+                # 让分盘是互斥的
+                return True
+            elif market_type == 'player_props':
+                # 球员盘通常不互斥（不同球员可以同时达成）
+                return False
+            elif market_type == 'team_props':
+                # 团队盘通常不互斥
+                return False
+        
+        # 如果有不同类型的市场，通常不构成套利
+        return False
+    
+    def validate_sports_event_consistency(self, markets: List[Dict]) -> bool:
+        """验证体育事件的一致性 - 确保事件类型和维度匹配"""
+        if len(markets) < 2:
+            return True
+        
+        # 1. 检查事件类型一致性
+        event_types = self.extract_sports_event_types(markets)
+        if not self.validate_sports_event_type_compatibility(event_types):
+            self.logger.debug(f"体育事件类型不兼容: {event_types}")
+            return False
+        if not self.validate_sports_dimension_consistency(markets):
+            self.logger.debug("体育事件维度不一致")
+            return False
+        
+        # 3. 检查时间一致性
+        if not self.validate_sports_time_consistency(markets):
+            self.logger.debug("体育事件时间不一致")
+            return False
+        
+        return True
+    
+    def extract_sports_event_types(self, markets: List[Dict]) -> List[str]:
+        """提取体育事件类型"""
+        event_type_keywords = {
+            'mvp_award': ['mvp', 'most valuable player', 'award', 'trophy'],
+            'championship': ['championship', 'finals', 'title', 'winner'],
+            'player_award': ['player', 'rookie', 'defensive', 'sixth man', 'most improved'],
+            'season_performance': ['season', 'record', 'standing', 'playoffs', 'games', 'wins', 'losses'],
+            'game_result': ['win', 'lose', 'beat', 'defeat', 'victory', 'game', 'match'],
+            'playoff_series': ['playoffs', 'postseason', 'series', 'advance', 'eliminate', 'bracket']
+        }
+        
+        market_event_types = []
+        for market in markets:
+            question = market.get('question', '').lower()
+            detected_types = []
+            
+            for event_type, keywords in event_type_keywords.items():
+                if any(keyword in question for keyword in keywords):
+                    detected_types.append(event_type)
+            
+            if not detected_types:
+                detected_types.append('unknown')
+            
+            market_event_types.extend(detected_types)
+        
+        return list(set(market_event_types))
+    
+    def validate_sports_event_type_compatibility(self, event_types: List[str]) -> bool:
+        """验证体育事件类型的兼容性"""
+        # 定义兼容的事件类型组合
+        compatible_combinations = {
+            frozenset(['mvp_award']),  # 纯MVP奖项
+            frozenset(['championship']),  # 纯冠军相关
+            frozenset(['player_award']),  # 纯其他球员奖项
+            frozenset(['season_performance']),  # 纯赛季表现
+            frozenset(['game_result']),  # 纯比赛结果
+            frozenset(['playoff_series']),  # 纯季后赛系列
+            frozenset(['unknown']),  # 未知类型
+            # 某些组合可能兼容
+            frozenset(['player_award', 'season_performance']),  # 球员奖项与赛季表现
+            frozenset(['game_result', 'season_performance']),  # 比赛结果与赛季表现
+            frozenset(['playoff_series', 'championship']),  # 季后赛与冠军
+        }
+        
+        # 检查当前组合是否兼容
+        event_types_set = frozenset(event_types)
+        return event_types_set in compatible_combinations
+    
+    def validate_sports_dimension_consistency(self, markets: List[Dict]) -> bool:
+        """验证体育事件的维度一致性（个人 vs 团队）"""
+        individual_keywords = ['mvp', 'player', 'rookie', 'defensive', 'sixth man', 'most improved', 'devin booker', 'lebron james', 'jokic', 'embiid']
+        team_keywords = ['team', 'franchise', 'championship', 'finals', 'lakers', 'warriors', 'celtics', 'portland trail blazers']
+        
+        market_dimensions = []
+        for market in markets:
+            question = market.get('question', '').lower()
+            
+            individual_count = sum(1 for kw in individual_keywords if kw in question)
+            team_count = sum(1 for kw in team_keywords if kw in question)
+            
+            if individual_count > team_count:
+                market_dimensions.append('individual')
+            elif team_count > individual_count:
+                market_dimensions.append('team')
+            else:
+                market_dimensions.append('unknown')
+        
+        unique_dimensions = set(dim for dim in market_dimensions if dim != 'unknown')
+        
+        # 如果所有都是unknown，允许通过
+        if len(unique_dimensions) == 0:
+            return True
+        
+        # 如果只有一个维度，通过验证
+        if len(unique_dimensions) == 1:
+            return True
+        
+        # 如果有多个维度，检查是否是兼容的组合
+        # 个人和团队事件通常不兼容，除非是特殊组合
+        return False
+    
+    def validate_sports_time_consistency(self, markets: List[Dict]) -> bool:
+        """验证体育事件的时间一致性"""
+        import re
+        
+        def extract_time_period(question: str) -> str:
+            """提取时间周期"""
+            question_lower = question.lower()
+            
+            # 日级时间
+            if re.search(r'\b(today|tonight|tonight\'s|today\'s)\b', question_lower):
+                return 'daily'
+            
+            # 周级时间
+            if re.search(r'\b(this week|week|weekly)\b', question_lower):
+                return 'weekly'
+            
+            # 月级时间
+            if re.search(r'\b(month|monthly|march|april|may|june|july|august|september|october|november|december|january|february)\b', question_lower):
+                return 'monthly'
+            
+            # 赛季相关
+            if re.search(r'\b(season|2025-2026|2026|playoffs|postseason)\b', question_lower):
+                return 'season'
+            
+            return 'unknown'
+        
+        time_periods = [extract_time_period(market.get('question', '')) for market in markets]
+        unique_periods = set(period for period in time_periods if period != 'unknown')
+        
+        # 如果所有都是unknown，允许通过
+        if len(unique_periods) == 0:
+            return True
+        
+        # 如果只有一个时间周期，通过验证
+        if len(unique_periods) == 1:
+            return True
+        
+        # 检查是否是兼容的时间周期组合
+        compatible_time_combinations = {
+            frozenset(['daily', 'weekly']),  # 日级和周级可以兼容
+            frozenset(['weekly', 'monthly']),  # 周级和月级可以兼容
+            frozenset(['monthly', 'season']),  # 月级和赛季可以兼容
+        }
+        
+        return frozenset(unique_periods) in compatible_time_combinations
+    
+    def validate_crypto_event_consistency(self, markets: List[Dict]) -> bool:
+        """验证加密货币事件的一致性 - 确保事件类型和时间匹配"""
+        if len(markets) < 2:
+            return True
+        
+        # 1. 检查事件类型一致性
+        event_types = self.extract_crypto_event_types(markets)
+        if not self.validate_event_type_compatibility(event_types):
+            self.logger.debug(f"加密货币事件类型不兼容: {event_types}")
+            return False
+        
+        # 2. 检查时间一致性（对于需要时间一致性的组）
+        if not self.validate_time_consistency(markets):
+            self.logger.debug("加密货币事件时间不一致")
+            return False
+        
+        # 3. 检查资产一致性
+        if not self.validate_asset_consistency(markets):
+            self.logger.debug("加密货币事件资产不一致")
+            return False
+        
+        return True
+    
+    def extract_crypto_event_types(self, markets: List[Dict]) -> List[str]:
+        """提取加密货币事件类型"""
+        event_type_keywords = {
+            'price_level': ['reach', 'above', 'below', 'level', 'target', '65,000', '70,000', '60,000', '75,000', '80,000', '50,000', '100k', '150k', '200k', '5k', '10k', '3k', '8k', '4k', '6k', '2k'],
+            'price_direction': ['up', 'down', 'rise', 'fall', 'direction', 'trend', 'bullish', 'bearish'],
+            'volatility': ['volatile', 'volatility', 'swing', 'fluctuation', 'range', 'choppy', 'stable'],
+            'regulatory': ['regulation', 'etf', 'sec', 'approval', 'ban', 'legal', 'policy'],
+            'adoption': ['adoption', 'institutional', 'mainstream', 'integration', 'payment', 'acceptance']
+        }
+        
+        market_event_types = []
+        for market in markets:
+            question = market.get('question', '').lower()
+            detected_types = []
+            
+            for event_type, keywords in event_type_keywords.items():
+                if any(keyword in question for keyword in keywords):
+                    detected_types.append(event_type)
+            
+            # 如果没有检测到特定类型，默认为unknown
+            if not detected_types:
+                detected_types.append('unknown')
+            
+            market_event_types.extend(detected_types)
+        
+        return list(set(market_event_types))
+    
+    def validate_event_type_compatibility(self, event_types: List[str]) -> bool:
+        """验证事件类型的兼容性"""
+        # 定义兼容的事件类型组合
+        compatible_combinations = {
+            frozenset(['price_level']),  # 纯价格水平事件
+            frozenset(['price_direction']),  # 纯价格方向事件
+            frozenset(['volatility']),  # 纯波动性事件
+            frozenset(['regulatory']),  # 纯监管事件
+            frozenset(['adoption']),  # 纯采用事件
+            frozenset(['unknown']),  # 未知类型
+            # 某些组合可能兼容，但需要谨慎处理
+            frozenset(['price_level', 'volatility']),  # 价格水平与波动性
+            frozenset(['price_direction', 'volatility']),  # 价格方向与波动性
+        }
+        
+        # 检查当前组合是否兼容
+        event_types_set = frozenset(event_types)
+        return event_types_set in compatible_combinations
+    
+    def validate_time_consistency(self, markets: List[Dict]) -> bool:
+        """验证时间一致性"""
+        import re
+        
+        def extract_time_period(question: str) -> str:
+            """提取时间周期"""
+            question_lower = question.lower()
+            
+            # 日级时间
+            if re.search(r'\b(daily|today|tomorrow|\d+st|\d+nd|\d+rd|\d+th)\b', question_lower):
+                return 'daily'
+            
+            # 周级时间
+            if re.search(r'\b(week|weekly|this week|next week)\b', question_lower):
+                return 'weekly'
+            
+            # 月级时间
+            if re.search(r'\b(month|monthly|march|april|may|june|july|august|september|october|november|december|january|february)\b', question_lower):
+                return 'monthly'
+            
+            # 季级时间
+            if re.search(r'\b(quarter|quarterly|q1|q2|q3|q4)\b', question_lower):
+                return 'quarterly'
+            
+            # 年级时间
+            if re.search(r'\b(year|yearly|annual|2024|2025|2026)\b', question_lower):
+                return 'yearly'
+            
+            return 'unknown'
+        
+        time_periods = [extract_time_period(market.get('question', '')) for market in markets]
+        unique_periods = set(period for period in time_periods if period != 'unknown')
+        
+        # 如果所有都是unknown，允许通过
+        if len(unique_periods) == 0:
+            return True
+        
+        # 如果只有一个时间周期，通过验证
+        if len(unique_periods) == 1:
+            return True
+        
+        # 检查是否是兼容的时间周期组合
+        compatible_time_combinations = {
+            frozenset(['daily', 'weekly']),  # 日级和周级可以兼容
+            frozenset(['weekly', 'monthly']),  # 周级和月级可以兼容
+            frozenset(['monthly', 'quarterly']),  # 月级和季级可以兼容
+            frozenset(['quarterly', 'yearly']),  # 季级和年级可以兼容
+        }
+        
+        return frozenset(unique_periods) in compatible_time_combinations
+    
+    def validate_asset_consistency(self, markets: List[Dict]) -> bool:
+        """验证资产一致性"""
+        asset_keywords = {
+            'bitcoin': ['bitcoin', 'btc'],
+            'ethereum': ['ethereum', 'eth'],
+            'crypto_general': ['crypto', 'cryptocurrency']
+        }
+        
+        market_assets = []
+        for market in markets:
+            question = market.get('question', '').lower()
+            detected_asset = None
+            
+            for asset, keywords in asset_keywords.items():
+                if any(keyword in question for keyword in keywords):
+                    detected_asset = asset
+                    break
+            
+            if detected_asset:
+                market_assets.append(detected_asset)
+        
+        unique_assets = set(market_assets)
+        
+        # 如果没有检测到特定资产，或者只有一种资产，通过验证
+        if len(unique_assets) <= 1:
+            return True
+        
+        # 如果有crypto_general，可以与其他资产兼容
+        if 'crypto_general' in unique_assets and len(unique_assets) == 2:
+            return True
+        
+        return False
+    
     def validate_dynamic_cluster(self, cluster_markets: List[Dict]) -> bool:
-        """验证动态聚类是否有意义"""
+        """验证动态聚类是否有意义 - 增强版本"""
         if len(cluster_markets) < 2:
             return False
         
-        # 检查是否有足够的语义关联
+        # 新增：检查是否是政治选举事件
+        if self.is_political_election_cluster(cluster_markets):
+            return self.validate_political_election_consistency(cluster_markets)
+        
+        # 新增：检查是否是军事冲突事件
+        if self.is_military_conflict_cluster(cluster_markets):
+            return self.validate_military_conflict_consistency(cluster_markets)
+        
+        # 1. 检查是否是体育博彩事件
+        if self.is_sports_betting_cluster(cluster_markets):
+            return self.validate_sports_betting_consistency(cluster_markets)
+        
+        # 2. 检查是否是地缘政治事件
+        if self.is_geopolitical_cluster(cluster_markets):
+            return self.validate_geopolitical_event_consistency(cluster_markets)
+        
+        # 3. 检查是否是NBA事件
+        if self.is_nba_cluster(cluster_markets):
+            return self.validate_sports_event_consistency(cluster_markets)
+        
+        # 4. 检查是否是加密货币事件
+        if self.is_crypto_cluster(cluster_markets):
+            return self.validate_crypto_event_consistency(cluster_markets)
+        
+        # 5. 检查地区一致性（针对地缘政治事件）
+        if not self.validate_regional_consistency(cluster_markets):
+            self.logger.debug("动态聚类地区一致性检查失败")
+            return False
+        
+        # 6. 检查事件类型相关性
+        if not self.validate_event_type_correlation(cluster_markets):
+            self.logger.debug("动态聚类事件类型相关性检查失败")
+            return False
+        
+        # 7. 检查是否有足够的语义关联
         questions = [market.get('question', '') for market in cluster_markets]
         
         # 计算所有市场对之间的平均相似度
@@ -868,8 +1968,265 @@ class ProbabilityArbitrageStrategy:
         
         avg_similarity = sum(similarities) / len(similarities)
         
-        # 只有平均相似度足够高才认为是有效的聚类
-        return avg_similarity > 0.3  # 平均相似度阈值
+        # 8. 综合判断：提高相似度阈值，减少错误聚类
+        return avg_similarity > 0.6  # 从0.4提高到0.6
+    
+    def is_political_election_cluster(self, markets: List[Dict]) -> bool:
+        """判断是否是政治选举聚类"""
+        election_keywords = ['election', 'parliamentary', 'vote', 'party', 'seat', 'candidate', 'president', 'slovenia', 'slovenian']
+        
+        for market in markets:
+            question = market.get('question', '').lower()
+            if any(keyword in question for keyword in election_keywords):
+                return True
+        
+        return False
+    
+    def is_military_conflict_cluster(self, markets: List[Dict]) -> bool:
+        """判断是否是军事冲突聚类"""
+        military_keywords = ['military', 'conflict', 'invasion', 'attack', 'control', 'island', 'territory', 'iran', 'kharg']
+        
+        for market in markets:
+            question = market.get('question', '').lower()
+            if any(keyword in question for keyword in military_keywords):
+                return True
+        
+        return False
+    
+    def validate_political_election_consistency(self, markets: List[Dict]) -> bool:
+        """验证政治选举事件的一致性"""
+        if len(markets) < 2:
+            return True
+        
+        # 检查是否都是同一国家的选举
+        countries = set()
+        for market in markets:
+            question = market.get('question', '').lower()
+            if 'slovenia' in question or 'slovenian' in question:
+                countries.add('slovenia')
+            elif 'iran' in question or 'iranian' in question:
+                countries.add('iran')
+            else:
+                # 尝试提取其他国家名称
+                words = question.split()
+                for word in words:
+                    if word.endswith('ia') or word.endswith('land') or word.endswith('stan'):
+                        countries.add(word)
+                        break
+        
+        # 只允许同一国家的选举事件组合
+        if len(countries) > 1:
+            self.logger.debug(f"不同国家的选举事件不允许组合: {countries}")
+            return False
+        
+        return True
+    
+    def validate_military_conflict_consistency(self, markets: List[Dict]) -> bool:
+        """验证军事冲突事件的一致性"""
+        if len(markets) < 2:
+            return True
+        
+        # 检查是否都是同一地区或相关方的军事事件
+        regions = set()
+        for market in markets:
+            question = market.get('question', '').lower()
+            if 'iran' in question or 'kharg' in question or 'persian' in question:
+                regions.add('iran')
+            elif 'israel' in question or 'gaza' in question:
+                regions.add('middle_east')
+            elif 'ukraine' in question or 'russia' in question:
+                regions.add('eastern_europe')
+            else:
+                regions.add('unknown')
+        
+        # 只允许同一地区或相关方的军事事件组合
+        if len(regions) > 1 and 'unknown' not in regions:
+            self.logger.debug(f"不同地区的军事事件不允许组合: {regions}")
+            return False
+        
+        return True
+    
+    def is_sports_betting_cluster(self, markets: List[Dict]) -> bool:
+        """判断是否是体育博彩聚类"""
+        sports_betting_keywords = ['vs', 'win', 'lose', 'over', 'under', 'o/u', 'total', 'spread', 'cover', 'player', 'points', 'rebounds', 'assists']
+        
+        for market in markets:
+            question = market.get('question', '').lower()
+            if any(keyword in question for keyword in sports_betting_keywords):
+                return True
+        
+        return False
+    
+    def is_geopolitical_cluster(self, markets: List[Dict]) -> bool:
+        """判断是否是地缘政治聚类"""
+        geopolitical_keywords = ['iran', 'taiwan', 'china', 'russia', 'ukraine', 'israel', 'palestine', 'gaza', 'syria', 'lebanon', 'nato', 'eu', 'un', 'reza pahlavi']
+        
+        for market in markets:
+            question = market.get('question', '').lower()
+            if any(keyword in question for keyword in geopolitical_keywords):
+                return True
+        
+        return False
+    
+    def is_nba_cluster(self, markets: List[Dict]) -> bool:
+        """判断是否是NBA聚类"""
+        nba_keywords = ['nba', 'basketball', 'mvp', 'finals', 'championship', 'devin booker', 'lebron james', 'lakers', 'warriors', 'celtics']
+        
+        for market in markets:
+            question = market.get('question', '').lower()
+            if any(keyword in question for keyword in nba_keywords):
+                return True
+        
+        return False
+    
+    def is_crypto_cluster(self, markets: List[Dict]) -> bool:
+        """判断是否是加密货币聚类"""
+        crypto_keywords = ['bitcoin', 'btc', 'ethereum', 'eth', 'crypto', 'cryptocurrency']
+        
+        for market in markets:
+            question = market.get('question', '').lower()
+            if any(keyword in question for keyword in crypto_keywords):
+                return True
+        
+        return False
+    
+    def validate_regional_consistency(self, markets: List[Dict]) -> bool:
+        """验证地区一致性 - 防止不同地区的事件被错误分组"""
+        # 定义地区关键词映射 - 更精确的识别
+        region_keywords = {
+            'slovenia': ['slovenia', 'slovenian', 'ljubljana'],  # 新增斯洛文尼亚
+            'iran': ['iran', 'iranian', 'tehran', 'kharg', 'persian'],  # 修改伊朗相关
+            'middle_east': ['israel', 'palestine', 'gaza', 'syria', 'lebanon', 'hamas', 'hezbollah', 'iraq', 'afghanistan'],
+            'taiwan': ['taiwan', 'taipei', 'china', 'beijing', 'strait'],
+            'ukraine': ['ukraine', 'kyiv', 'russia', 'moscow', 'europe'],
+            'europe': ['europe', 'european', 'eu', 'nato'],  # 扩展欧洲地区
+            'global': ['un', 'worldwide', 'international']  # 更严格的全球定义
+        }
+        
+        # 为每个市场识别地区
+        market_regions = []
+        for market in markets:
+            question = market.get('question', '').lower()
+            market_region = None
+            
+            for region, keywords in region_keywords.items():
+                if any(keyword in question for keyword in keywords):
+                    market_region = region
+                    break
+            
+            market_regions.append(market_region)
+        
+        # 检查是否所有市场都属于同一地区
+        unique_regions = set(region for region in market_regions if region)
+        
+        # 如果没有识别出地区，进行更严格的检查
+        if len(unique_regions) == 0:
+            # 对于没有明确地区关键词的市场，检查是否包含国家名称
+            countries = set()
+            for market in markets:
+                question = market.get('question', '').lower()
+                # 简单的国家名称检测
+                if 'slovenia' in question:
+                    countries.add('slovenia')
+                elif 'iran' in question:
+                    countries.add('iran')
+                elif any(country in question for country in ['china', 'russia', 'ukraine', 'taiwan', 'israel', 'syria']):
+                    countries.add('other_geopolitical')
+            
+            # 如果检测到不同国家，不允许分组
+            if len(countries) > 1:
+                self.logger.debug(f"检测到不同国家，不允许分组: {countries}")
+                return False
+            return True
+        
+        # 如果所有市场都属于同一地区，通过验证
+        if len(unique_regions) == 1:
+            return True
+        
+        # 如果有多个地区，严格禁止（除非是真正的全球事件）
+        # 只有在所有市场都明确包含'global'或'international'关键词时才允许
+        all_global = all('global' in market.get('question', '').lower() or 
+                       'international' in market.get('question', '').lower() 
+                       for market in markets)
+        
+        if all_global and len(unique_regions) <= 2:
+            return True
+        
+        self.logger.debug(f"地区不一致，禁止分组: {unique_regions}")
+        return False
+    
+    def validate_event_type_correlation(self, markets: List[Dict]) -> bool:
+        """验证事件类型相关性 - 确保事件之间存在逻辑关联"""
+        # 定义事件类型关键词 - 更精确的分类
+        event_types = {
+            'election_political': ['election', 'parliamentary', 'vote', 'party', 'seat', 'win', 'candidate', 'president'],
+            'military_conflict': ['invasion', 'attack', 'war', 'military', 'conflict', 'escalation', 'control', 'island', 'territory'],
+            'peace_process': ['ceasefire', 'peace', 'negotiation', 'talk', 'agreement', 'treaty'],
+            'diplomatic_relations': ['diplomacy', 'relations', 'summit', 'meeting', 'alliance'],
+            'economic_sanctions': ['sanction', 'trade', 'economy', 'embargo', 'restriction']
+        }
+        
+        # 为每个市场识别事件类型
+        market_event_types = []
+        for market in markets:
+            question = market.get('question', '').lower()
+            market_type = None
+            
+            # 优先级检查：某些关键词具有更高优先级
+            if 'election' in question or 'parliamentary' in question or 'party' in question:
+                market_type = 'election_political'
+            elif any(keyword in question for keyword in ['invasion', 'attack', 'military', 'control']):
+                market_type = 'military_conflict'
+            else:
+                for event_type, keywords in event_types.items():
+                    if any(keyword in question for keyword in keywords):
+                        market_type = event_type
+                        break
+            
+            market_event_types.append(market_type)
+        
+        # 检查事件类型的相关性
+        unique_types = set(event_type for event_type in market_event_types if event_type)
+        
+        # 如果没有识别出事件类型，进行更严格的检查
+        if len(unique_types) == 0:
+            # 检查是否包含明显不同类型的事件关键词
+            has_election = any('election' in m.get('question', '').lower() or 
+                            'parliamentary' in m.get('question', '').lower() 
+                            for m in markets)
+            has_military = any('military' in m.get('question', '').lower() or 
+                             'control' in m.get('question', '').lower() or 
+                             'island' in m.get('question', '').lower() 
+                             for m in markets)
+            
+            # 如果同时存在选举和军事事件，不允许分组
+            if has_election and has_military:
+                self.logger.debug("检测到选举和军事事件混合，不允许分组")
+                return False
+            return True
+        
+        # 定义严格兼容的事件类型组合
+        compatible_combinations = {
+            frozenset(['election_political']),  # 纯选举事件
+            frozenset(['military_conflict']),  # 纯军事冲突
+            frozenset(['peace_process']),     # 纯和平进程
+            frozenset(['military_conflict', 'peace_process']),  # 冲突与和平相关
+            frozenset(['diplomatic_relations']),  # 纯外交关系
+            frozenset(['economic_sanctions']),     # 纯经济制裁
+            frozenset(['diplomatic_relations', 'economic_sanctions'])  # 外交与经济相关
+        }
+        
+        # 检查当前组合是否兼容
+        if frozenset(unique_types) in compatible_combinations:
+            return True
+        
+        # 特别检查：选举和军事事件绝对不能组合
+        if 'election_political' in unique_types and 'military_conflict' in unique_types:
+            self.logger.debug(f"选举和军事事件不能组合: {unique_types}")
+            return False
+        
+        self.logger.debug(f"事件类型不兼容: {unique_types}")
+        return False
     
     def calculate_semantic_similarity(self, question1: str, question2: str) -> float:
         """计算两个问题的语义相似度"""
@@ -2194,11 +3551,17 @@ class ProbabilityArbitrageStrategy:
         position_size = self.calculate_arbitrage_position_size(market, opportunity)
         
         try:
+            # 获取token_id（条件代币地址）
+            token_id = market.get('token_id') or market.get('id')
+            if not token_id:
+                self.logger.error(f"无法获取token_id: {market}")
+                return
+            
             order_id = self.trading_client.create_order(
-                market_id=market['id'],
-                price=self.get_market_yes_price(market),
+                token_id=token_id,
+                side='BUY',  # 使用大写的BUY
                 size=position_size,
-                side='buy'
+                price=self.get_market_yes_price(market)
             )
             self.logger.info(f"买入订单: {order_id} - {market['question'][:30]}...")
             
@@ -2210,11 +3573,17 @@ class ProbabilityArbitrageStrategy:
         position_size = self.calculate_arbitrage_position_size(market, opportunity)
         
         try:
+            # 获取token_id（条件代币地址）
+            token_id = market.get('token_id') or market.get('id')
+            if not token_id:
+                self.logger.error(f"无法获取token_id: {market}")
+                return
+            
             order_id = self.trading_client.create_order(
-                market_id=market['id'],
-                price=self.get_market_yes_price(market),
+                token_id=token_id,
+                side='SELL',  # 使用大写的SELL
                 size=position_size,
-                side='sell'
+                price=self.get_market_yes_price(market)
             )
             self.logger.info(f"卖出订单: {order_id} - {market['question'][:30]}...")
             

@@ -490,29 +490,42 @@ class UnifiedStrategyManager:
             order_id = None
             if signal.strategy_name == 'information_advantage':
                 # 信息优势策略的交易逻辑
+                # 获取token_id（条件代币地址）
+                token_id = signal.market.get('token_id') or signal.market.get('id')
+                if not token_id:
+                    print(f"❌ 无法获取token_id: {signal.market}")
+                    return
+                
+                side = 'BUY' if signal.direction == 'buy' else 'SELL'
                 order_id = strategy.trading_client.create_order(
-                    market_id=signal.market['id'],
-                    price=signal.market.get('yes_price', 0.5),
+                    token_id=token_id,
+                    side=side,
                     size=signal.position_size,
-                    side=signal.direction
+                    price=signal.market.get('yes_price', 0.5)
                 )
                 print(f"✅ 交易执行: {order_id}")
             
             elif signal.strategy_name == 'probability_arbitrage':
                 # 概率套利策略的交易逻辑
+                # 获取token_id（条件代币地址）
+                token_id = signal.market.get('token_id') or signal.market.get('id')
+                if not token_id:
+                    print(f"❌ 无法获取token_id: {signal.market}")
+                    return
+                
                 if signal.direction == 'buy_all':
                     order_id = strategy.trading_client.create_order(
-                        market_id=signal.market['id'],
-                        price=signal.market.get('yes_price', 0.5),
+                        token_id=token_id,
+                        side='BUY',
                         size=signal.position_size,
-                        side='buy'
+                        price=signal.market.get('yes_price', 0.5)
                     )
                 else:
                     order_id = strategy.trading_client.create_order(
-                        market_id=signal.market['id'],
-                        price=signal.market.get('yes_price', 0.5),
+                        token_id=token_id,
+                        side='SELL',
                         size=signal.position_size,
-                        side='sell'
+                        price=signal.market.get('yes_price', 0.5)
                     )
                 print(f"✅ 套利交易: {order_id}")
             

@@ -479,11 +479,17 @@ class TimeArbitrageStrategy:
         position_size = self.calculate_position_size(opportunity)
         
         try:
+            # 获取token_id（条件代币地址）
+            token_id = opportunity.market.get('token_id') or opportunity.market.get('id')
+            if not token_id:
+                print(f"❌ 无法获取token_id: {opportunity.market}")
+                return
+            
             order_id = self.trading_client.create_order(
-                market_id=opportunity.market['id'],
-                price=opportunity.current_price,
+                token_id=token_id,
+                side='BUY',
                 size=position_size,
-                side='buy'
+                price=opportunity.current_price
             )
             print(f"✅ 买入订单: {order_id} - {opportunity.market['question'][:30]}...")
             
@@ -495,11 +501,17 @@ class TimeArbitrageStrategy:
         position_size = self.calculate_position_size(opportunity)
         
         try:
+            # 获取token_id（条件代币地址）
+            token_id = opportunity.market.get('token_id') or opportunity.market.get('id')
+            if not token_id:
+                print(f"❌ 无法获取token_id: {opportunity.market}")
+                return
+            
             order_id = self.trading_client.create_order(
-                market_id=opportunity.market['id'],
-                price=opportunity.current_price,
+                token_id=token_id,
+                side='SELL',
                 size=position_size,
-                side='sell'
+                price=opportunity.current_price
             )
             print(f"✅ 卖出订单: {order_id} - {opportunity.market['question'][:30]}...")
             

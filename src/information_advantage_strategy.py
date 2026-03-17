@@ -569,20 +569,32 @@ class InformationAdvantageStrategy:
                 
                 # 执行交易
                 if impact.direction == 'buy':
+                    # 获取token_id（条件代币地址）
+                    token_id = market.get('token_id') or market.get('id')
+                    if not token_id:
+                        print(f"❌ 无法获取token_id: {market}")
+                        continue
+                    
                     order_id = self.trading_client.create_order(
-                        market_id=market['id'],
-                        price=market.get('yes_price', 0.5),
+                        token_id=token_id,
+                        side='BUY',
                         size=position_size,
-                        side='buy'
+                        price=market.get('yes_price', 0.5)
                     )
                     print(f"✅ 买入订单: {order_id} - {market['question'][:30]}...")
                 
                 elif impact.direction == 'sell':
+                    # 获取token_id（条件代币地址）
+                    token_id = market.get('token_id') or market.get('id')
+                    if not token_id:
+                        print(f"❌ 无法获取token_id: {market}")
+                        continue
+                    
                     order_id = self.trading_client.create_order(
-                        market_id=market['id'],
-                        price=market.get('yes_price', 0.5),
+                        token_id=token_id,
+                        side='SELL',
                         size=position_size,
-                        side='sell'
+                        price=market.get('yes_price', 0.5)
                     )
                     print(f"✅ 卖出订单: {order_id} - {market['question'][:30]}...")
                 
