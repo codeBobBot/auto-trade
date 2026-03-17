@@ -570,7 +570,7 @@ class InformationAdvantageStrategy:
                 # 执行交易
                 if impact.direction == 'buy':
                     # 获取token_id（条件代币地址）
-                    token_id = market.get('token_id') or market.get('id')
+                    token_id = self.trading_client.get_market_token_id_enhanced(market)
                     if not token_id:
                         print(f"❌ 无法获取token_id: {market}")
                         continue
@@ -585,7 +585,7 @@ class InformationAdvantageStrategy:
                 
                 elif impact.direction == 'sell':
                     # 获取token_id（条件代币地址）
-                    token_id = market.get('token_id') or market.get('id')
+                    token_id = self.trading_client.get_market_token_id_enhanced(market)
                     if not token_id:
                         print(f"❌ 无法获取token_id: {market}")
                         continue

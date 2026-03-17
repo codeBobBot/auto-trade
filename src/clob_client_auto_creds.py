@@ -7,6 +7,8 @@ CLOB 客户端 - 自动生成 API 凭证
 import os
 import json
 import time
+import logging
+import requests
 from datetime import datetime
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
@@ -29,6 +31,9 @@ class ClobTradingClientAutoCreds:
         self.signature_type = 2  # EIP712
         self.auto_derive_creds = auto_derive_creds
         
+        # Gamma API 配置
+        self.gamma_api_url = "https://gamma-api.polymarket.com"
+        
         # 从环境变量获取私钥
         self.private_key = os.getenv('POLYGON_PRIVATE_KEY', '')
         
@@ -45,6 +50,12 @@ class ClobTradingClientAutoCreds:
         self.client = None
         self.wallet_address = None
         self.derived_creds = None
+        
+        # token_id缓存
+        self._token_cache = {}
+        
+        # 配置logger
+        self.logger = logging.getLogger(__name__)
         
         self._initialize_client()
     
@@ -274,6 +285,325 @@ class ClobTradingClientAutoCreds:
                 'currency': 'USDC'
             }
     
+    def debug_market_api(self, market_id: str) -> Dict:
+        """调试市场API响应"""
+        debug_info = {
+            'market_id': market_id,
+            'api_endpoints': [],
+            'responses': {},
+            'token_fields_found': [],
+            'final_token_id': None
+        }
+        
+        # 测试多个可能的端点
+        endpoints = [
+            f"{self.gamma_api_url}/markets/{market_id}",
+            f"{self.gamma_api_url}/events/{market_id}",
+            f"{self.gamma_api_url}/markets",
+            f"{self.gamma_api_url}/events"
+        ]
+        
+        for endpoint in endpoints:
+            try:
+                self.logger.info(f"测试端点: {endpoint}")
+                response = requests.get(endpoint, timeout=30)
+                response.raise_for_status()
+                
+                data = response.json()
+                debug_info['api_endpoints'].append(endpoint)
+                debug_info['responses'][endpoint] = data
+                
+                # 查找token相关字段
+                token_fields = self.find_token_fields_in_data(data)
+                debug_info['token_fields_found'].extend(token_fields)
+                
+                self.logger.info(f"端点 {endpoint} 成功，找到token字段: {token_fields}")
+                
+            except Exception as e:
+                self.logger.error(f"端点 {endpoint} 失败: {e}")
+        
+        # 尝试从响应中提取token_id
+        for endpoint, data in debug_info['responses'].items():
+            if isinstance(data, list) and len(data) > 0:
+                # 如果是列表，查找匹配的市场
+                for item in data:
+                    if str(item.get('id')) == market_id:
+                        token_id = self.extract_token_id_from_full_data(item)
+                        if token_id:
+                            debug_info['final_token_id'] = token_id
+                            break
+            elif isinstance(data, dict):
+                # 如果是字典，直接提取
+                token_id = self.extract_token_id_from_full_data(data)
+                if token_id:
+                    debug_info['final_token_id'] = token_id
+                    break
+            
+            if debug_info['final_token_id']:
+                break
+        
+        return debug_info
+    
+    def find_token_fields_in_data(self, data) -> List[str]:
+        """递归查找数据中的token相关字段"""
+        token_fields = []
+        
+        if isinstance(data, dict):
+            for key, value in data.items():
+                # 检查字段名是否包含token相关关键词
+                if any(keyword in key.lower() for keyword in ['token', 'address', 'contract']):
+                    token_fields.append(f"{key}: {type(value).__name__}")
+                
+                # 递归检查嵌套结构
+                if isinstance(value, (dict, list)):
+                    nested_fields = self.find_token_fields_in_data(value)
+                    token_fields.extend([f"{key}.{field}" for field in nested_fields])
+        
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                nested_fields = self.find_token_fields_in_data(item)
+                token_fields.extend([f"[{i}].{field}" for field in nested_fields])
+        
+        return token_fields
+    
+    def get_token_id_alternative_methods(self, market: Dict) -> Optional[str]:
+        """使用备选方法获取token_id"""
+        market_id = market.get('id')
+        if not market_id:
+            return None
+        
+        # 备选方法1: 使用ClobClient的内置方法
+        try:
+            if self.client:
+                # 尝试获取订单簿来推断token_id
+                order_book = self.client.get_order_book(market_id)
+                if order_book and hasattr(order_book, 'asset_id'):
+                    self.logger.info(f"从订单簿获取token_id: {order_book.asset_id}")
+                    return order_book.asset_id
+        except Exception as e:
+            self.logger.warning(f"订单簿方法失败: {e}")
+        
+        # 备选方法2: 使用价格API
+        try:
+            if self.client:
+                # 尝试获取价格来推断token_id
+                price_data = self.client.get_price(market_id, "BUY")
+                if price_data:
+                    self.logger.info(f"从价格API推断token_id成功")
+                    return market_id  # 如果价格API成功，market_id可能就是token_id
+        except Exception as e:
+            self.logger.warning(f"价格API方法失败: {e}")
+        
+        # 备选方法3: 直接使用market_id作为token_id
+        try:
+            self.logger.warning(f"直接使用market_id作为token_id: {market_id}")
+            return market_id
+        except Exception as e:
+            self.logger.error(f"直接使用market_id失败: {e}")
+        
+        return None
+    
+    def create_order_with_enhanced_fallback(self, market: Dict, side: str, size: float, price: float) -> Dict:
+        """使用增强fallback的订单创建"""
+        market_id = market.get('id')
+        
+        # 方法1: 增强的token_id获取
+        token_id = self.get_market_token_id_enhanced(market)
+        if token_id:
+            return self.create_order(token_id, side, size, price)
+        
+        # 方法2: 备选方法
+        token_id = self.get_token_id_alternative_methods(market)
+        if token_id:
+            return self.create_order(token_id, side, size, price)
+        
+        # 方法3: 最后的fallback
+        try:
+            self.logger.error(f"所有方法失败，尝试直接使用market_id: {market_id}")
+            return self.create_order(market_id, side, size, price)
+        except Exception as e:
+            self.logger.error(f"最终fallback失败: {e}")
+            return {
+                'success': False,
+                'error': f'所有token_id获取方法都失败 for market {market_id}',
+                'order_id': None
+            }
+    
+    def get_market_token_id_enhanced(self, market: Dict) -> Optional[str]:
+        """增强版token_id获取方法 - 支持从Gamma API获取"""
+        
+        # 首先尝试从现有数据获取
+        token_id = self.get_market_token_id(market)
+        if token_id:
+            return token_id
+        
+        # 如果没有，从Gamma API获取完整数据
+        market_id = market.get('id')
+        if not market_id:
+            return None
+        
+        # 检查缓存
+        if market_id in self._token_cache:
+            return self._token_cache[market_id]
+        
+        try:
+            # 获取完整的市场数据
+            full_market_data = self.get_market_by_id(market_id)
+            if not full_market_data:
+                return None
+            
+            # 从完整数据中提取token_id
+            token_id = self.extract_token_id_from_full_data(full_market_data)
+            
+            # 缓存结果
+            if token_id:
+                self._token_cache[market_id] = token_id
+            
+            return token_id
+            
+        except Exception as e:
+            self.logger.error(f"获取token_id失败: {e}")
+            return None
+    
+    def get_market_by_id(self, market_id: str) -> Optional[Dict]:
+        """根据ID获取完整的市场数据"""
+        try:
+            # 使用Gamma API获取市场详情
+            url = f"{self.gamma_api_url}/markets/{market_id}"
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            
+            return response.json()
+            
+        except Exception as e:
+            self.logger.error(f"获取市场数据失败: {e}")
+            return None
+    
+    def extract_token_id_from_full_data(self, market_data: Dict) -> Optional[str]:
+        """从完整市场数据中提取token_id"""
+        
+        # 检查各种可能的字段
+        token_fields = [
+            'clobTokenId',
+            'clobTokenIds',     # 新增：复数形式
+            'token_id', 
+            'tokenAddress',
+            'condition_id',
+            'outcomeTokenId'
+        ]
+        
+        for field in token_fields:
+            if field in market_data and market_data[field]:
+                token_value = market_data[field]
+                # 如果是clobTokenIds（可能是字符串或数组）
+                if field == 'clobTokenIds':
+                    if isinstance(token_value, str):
+                        # 如果是字符串，尝试解析为JSON
+                        try:
+                            import json
+                            parsed = json.loads(token_value)
+                            if isinstance(parsed, list) and len(parsed) > 0:
+                                return parsed[0]  # 返回第一个token ID
+                            else:
+                                return token_value
+                        except (json.JSONDecodeError, TypeError):
+                            return token_value
+                    elif isinstance(token_value, list) and len(token_value) > 0:
+                        # 对于Yes/No市场，通常第一个token是Yes
+                        return str(token_value[0])  # 返回第一个token ID的字符串形式
+                elif field == 'clobTokenId':
+                    return token_value
+                else:
+                    return token_value
+        
+        # 检查outcomeTokens
+        if 'outcomeTokens' in market_data:
+            outcome_tokens = market_data['outcomeTokens']
+            if isinstance(outcome_tokens, list) and len(outcome_tokens) > 0:
+                # 查找Yes代币
+                for token in outcome_tokens:
+                    if isinstance(token, dict):
+                        if token.get('outcome') == 'Yes':
+                            return token.get('address') or token.get('token_id')
+                # 返回第一个
+                first_token = outcome_tokens[0]
+                return first_token.get('address') or first_token.get('token_id')
+        
+        # 检查tokens
+        if 'tokens' in market_data:
+            tokens = market_data['tokens']
+            if isinstance(tokens, list) and len(tokens) > 0:
+                first_token = tokens[0]
+                return first_token.get('address') or first_token.get('token_id')
+        
+        return None
+    
+    def create_order_with_market_id(self, market: Dict, side: str, size: float, price: float) -> Dict:
+        """使用market_id创建订单的fallback方法"""
+        
+        # 尝试多种方法获取token_id
+        
+        # 方法1: 使用增强的token_id获取
+        token_id = self.get_market_token_id_enhanced(market)
+        if token_id:
+            return self.create_order(token_id, side, size, price)
+        
+        # 方法2: 尝试直接使用market_id
+        market_id = market.get('id')
+        try:
+            self.logger.warning(f"尝试直接使用market_id: {market_id}")
+            return self.create_order(market_id, side, size, price)
+        except Exception as e:
+            self.logger.error(f"直接使用market_id失败: {e}")
+        
+        # 方法3: 返回错误
+        return {
+            'success': False,
+            'error': f'无法获取token_id for market {market_id}',
+            'order_id': None
+        }
+    
+    def get_market_token_id(self, market: Dict) -> Optional[str]:
+        """从市场数据中提取正确的token_id"""
+        
+        # 方法1: 直接查找常见字段
+        direct_fields = ['clobTokenId', 'token_id', 'tokenAddress', 'condition_id', 'outcomeTokenId']
+        for field in direct_fields:
+            if field in market and market[field]:
+                return market[field]
+        
+        # 方法2: 检查outcomeTokens结构
+        if 'outcomeTokens' in market:
+            outcome_tokens = market['outcomeTokens']
+            if isinstance(outcome_tokens, list) and len(outcome_tokens) > 0:
+                # 查找"Yes"代币
+                for token in outcome_tokens:
+                    if isinstance(token, dict):
+                        if token.get('outcome') == 'Yes' or 'yes' in str(token.get('outcome', '')).lower():
+                            return token.get('address') or token.get('token_id')
+                # 如果没找到Yes，返回第一个
+                first_token = outcome_tokens[0]
+                return first_token.get('address') or first_token.get('token_id')
+        
+        # 方法3: 检查tokens结构
+        if 'tokens' in market:
+            tokens = market['tokens']
+            if isinstance(tokens, list) and len(tokens) > 0:
+                first_token = tokens[0]
+                return first_token.get('address') or first_token.get('token_id')
+        
+        # 方法4: 检查嵌套的market数据
+        if 'market' in market:
+            nested_market = market['market']
+            return self.get_market_token_id(nested_market)
+        
+        # 方法5: 检查question markets结构
+        if 'question' in market and isinstance(market['question'], dict):
+            question_market = market['question']
+            return self.get_market_token_id(question_market)
+        
+        return None
+    
     def create_order(self, token_id: str, side: str, size: float, price: float) -> Dict:
         """创建订单
         
@@ -294,7 +624,7 @@ class ClobTradingClientAutoCreds:
             }
         
         try:
-            print(f"📝 创建订单: {side} {size} @ {price}")
+            self.logger.info(f"创建订单: {side} {size} @ {price}")
             
             # 确定买卖方向
             order_side = BUY if side.upper() == 'BUY' else SELL
@@ -307,10 +637,10 @@ class ClobTradingClientAutoCreds:
                 token_id=token_id
             )
             
-            # 创建并提交订单
-            order_result = self.client.create_and_submit_order(order_args)
+            # 创建并发布订单
+            order_result = self.client.create_and_post_order(order_args)
             
-            print(f"✅ 订单创建成功: {order_result}")
+            self.logger.info(f"订单创建成功: {order_result}")
             
             return {
                 'success': True,
@@ -319,7 +649,7 @@ class ClobTradingClientAutoCreds:
             }
             
         except Exception as e:
-            print(f"❌ 创建订单失败: {e}")
+            self.logger.error(f"创建订单失败: {e}")
             return {
                 'success': False,
                 'error': str(e),
@@ -344,7 +674,7 @@ class ClobTradingClientAutoCreds:
             return order_list
             
         except Exception as e:
-            print(f"❌ 获取订单失败: {e}")
+            self.logger.error(f"获取订单失败: {e}")
             return []
     
     def test_connection(self) -> Dict:

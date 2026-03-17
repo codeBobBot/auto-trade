@@ -3551,15 +3551,23 @@ class ProbabilityArbitrageStrategy:
         position_size = self.calculate_arbitrage_position_size(market, opportunity)
         
         try:
-            # 获取token_id（条件代币地址）
-            token_id = market.get('token_id') or market.get('id')
+            # 获取token_id（条件代币地址）- 使用增强fallback
+            token_id = self.trading_client.get_market_token_id_enhanced(market)
             if not token_id:
-                self.logger.error(f"无法获取token_id: {market}")
+                # 尝试使用增强fallback方法
+                result = self.trading_client.create_order_with_enhanced_fallback(
+                    market, 'BUY', position_size, self.get_market_yes_price(market)
+                )
+                if result.get('success'):
+                    order_id = result.get('order_id')
+                    self.logger.info(f"买入订单: {order_id} - {market['question'][:30]}...")
+                else:
+                    self.logger.error(f"买入失败: {result.get('error')}")
                 return
             
             order_id = self.trading_client.create_order(
                 token_id=token_id,
-                side='BUY',  # 使用大写的BUY
+                side='BUY',
                 size=position_size,
                 price=self.get_market_yes_price(market)
             )
@@ -3573,15 +3581,23 @@ class ProbabilityArbitrageStrategy:
         position_size = self.calculate_arbitrage_position_size(market, opportunity)
         
         try:
-            # 获取token_id（条件代币地址）
-            token_id = market.get('token_id') or market.get('id')
+            # 获取token_id（条件代币地址）- 使用增强fallback
+            token_id = self.trading_client.get_market_token_id_enhanced(market)
             if not token_id:
-                self.logger.error(f"无法获取token_id: {market}")
+                # 尝试使用增强fallback方法
+                result = self.trading_client.create_order_with_enhanced_fallback(
+                    market, 'SELL', position_size, self.get_market_yes_price(market)
+                )
+                if result.get('success'):
+                    order_id = result.get('order_id')
+                    self.logger.info(f"卖出订单: {order_id} - {market['question'][:30]}...")
+                else:
+                    self.logger.error(f"卖出失败: {result.get('error')}")
                 return
             
             order_id = self.trading_client.create_order(
                 token_id=token_id,
-                side='SELL',  # 使用大写的SELL
+                side='SELL',
                 size=position_size,
                 price=self.get_market_yes_price(market)
             )

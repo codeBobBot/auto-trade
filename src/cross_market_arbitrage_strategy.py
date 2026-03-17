@@ -458,7 +458,7 @@ class CrossMarketArbitrageStrategy:
         
         try:
             # 获取token_id（条件代币地址）
-            token_id = market.get('token_id') or market.get('id')
+            token_id = self.trading_client.get_market_token_id_enhanced(market)
             if not token_id:
                 self.logger.error(f"无法获取token_id: {market}")
                 return
@@ -480,7 +480,7 @@ class CrossMarketArbitrageStrategy:
         
         try:
             # 获取token_id（条件代币地址）
-            token_id = market.get('token_id') or market.get('id')
+            token_id = self.trading_client.get_market_token_id_enhanced(market)
             if not token_id:
                 self.logger.error(f"无法获取token_id: {market}")
                 return

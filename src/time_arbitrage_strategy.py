@@ -480,7 +480,7 @@ class TimeArbitrageStrategy:
         
         try:
             # 获取token_id（条件代币地址）
-            token_id = opportunity.market.get('token_id') or opportunity.market.get('id')
+            token_id = self.trading_client.get_market_token_id_enhanced(opportunity.market)
             if not token_id:
                 print(f"❌ 无法获取token_id: {opportunity.market}")
                 return
@@ -502,7 +502,7 @@ class TimeArbitrageStrategy:
         
         try:
             # 获取token_id（条件代币地址）
-            token_id = opportunity.market.get('token_id') or opportunity.market.get('id')
+            token_id = self.trading_client.get_market_token_id_enhanced(opportunity.market)
             if not token_id:
                 print(f"❌ 无法获取token_id: {opportunity.market}")
                 return

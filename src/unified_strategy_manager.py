@@ -491,7 +491,7 @@ class UnifiedStrategyManager:
             if signal.strategy_name == 'information_advantage':
                 # 信息优势策略的交易逻辑
                 # 获取token_id（条件代币地址）
-                token_id = signal.market.get('token_id') or signal.market.get('id')
+                token_id = strategy.trading_client.get_market_token_id_enhanced(signal.market)
                 if not token_id:
                     print(f"❌ 无法获取token_id: {signal.market}")
                     return
@@ -508,7 +508,7 @@ class UnifiedStrategyManager:
             elif signal.strategy_name == 'probability_arbitrage':
                 # 概率套利策略的交易逻辑
                 # 获取token_id（条件代币地址）
-                token_id = signal.market.get('token_id') or signal.market.get('id')
+                token_id = strategy.trading_client.get_market_token_id_enhanced(signal.market)
                 if not token_id:
                     print(f"❌ 无法获取token_id: {signal.market}")
                     return
