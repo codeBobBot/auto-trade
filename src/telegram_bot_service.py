@@ -142,14 +142,26 @@ class TelegramBotService:
         try:
             # 获取系统状态
             manager = self.strategy_manager
-            is_running = manager.is_running
-            total_trades = manager.daily_stats['total_trades']
-            successful_trades = manager.daily_stats['successful_trades']
-            total_pnl = manager.daily_stats['total_pnl']
+            
+            # 安全获取属性
+            is_running = getattr(manager, 'is_running', True)
+            total_trades = manager.daily_stats.get('total_trades', 0) if hasattr(manager, 'daily_stats') else 0
+            successful_trades = manager.daily_stats.get('successful_trades', 0) if hasattr(manager, 'daily_stats') else 0
+            total_pnl = manager.daily_stats.get('total_pnl', 0.0) if hasattr(manager, 'daily_stats') else 0.0
+            total_capital = getattr(manager, 'total_capital', 1000.0)
             
             # 计算运行时间
             start_time = getattr(manager, 'start_time', datetime.now())
             runtime = datetime.now() - start_time
+            
+            # 安全计算成功率
+            success_rate = ((successful_trades/total_trades)*100) if total_trades > 0 else 0.0
+            
+            # 安全计算活跃策略
+            strategies_dict = getattr(manager, 'strategies', {})
+            active_strategies = len([s for s in strategies_dict.values() if s])
+            total_strategies = len(strategies_dict)
+            strategy_ratio = f"{active_strategies}/{total_strategies}" if total_strategies > 0 else "0/0"
             
             status_msg = f"""
 📊 **系统状态**
@@ -157,15 +169,15 @@ class TelegramBotService:
 
 🔄 运行状态: {'🟢 运行中' if is_running else '🔴 已停止'}
 ⏰ 运行时间: {str(runtime).split('.')[0]}
-💰 总资金: ${manager.total_capital:,.2f}
+💰 总资金: ${total_capital:,.2f}
 
 📋 今日交易:
    • 总交易数: {total_trades}
    • 成功交易: {successful_trades}
-   • 成功率: {(successful_trades/total_trades*100):.1f}% if total_trades > 0 else 0%
+   • 成功率: {success_rate:.1f}%
    • 总盈亏: ${total_pnl:+.2f}
 
-🎯 活跃策略: {len([s for s in manager.strategies.values() if s])}/{len(manager.strategies)}
+🎯 活跃策略: {strategy_ratio}
 """
             
             # 创建控制按钮
@@ -199,13 +211,12 @@ class TelegramBotService:
                 status = "🟢 活跃" if strategy else "🔴 停用"
                 
                 strategies_msg += f"""
-📊 **{config.name}**
+📊 **{config['name']}**
    状态: {status}
-   权重: {config.weight:.1%}
-   最大仓位: ${config.max_capital:,.2f}
-   最小置信度: {config.min_confidence:.1%}
-   扫描间隔: {config.scan_interval}秒
-   优先级: {config.priority}
+   权重: {config['weight']:.1%}
+   最大仓位: {config['max_position_size']:.1%}
+   最小置信度: {config['min_confidence']:.1%}
+   启用状态: {'🟢 启用' if config['enabled'] else '🔴 禁用'}
 """
             
             await update.message.reply_text(strategies_msg, parse_mode='Markdown')
@@ -231,17 +242,17 @@ class TelegramBotService:
                 if not config:
                     continue
                 
-                success_rate = (performance.successful_trades / performance.total_trades * 100) if performance.total_trades > 0 else 0
+                success_rate = (performance['successful_trades'] / performance['total_trades'] * 100) if performance['total_trades'] > 0 else 0
                 
                 performance_msg += f"""
-🎯 **{config.name}**
-   • 总交易: {performance.total_trades}
-   • 成功交易: {performance.successful_trades}
+🎯 **{config['name']}**
+   • 总交易: {performance['total_trades']}
+   • 成功交易: {performance['successful_trades']}
    • 成功率: {success_rate:.1f}%
-   • 总收益: {performance.total_return:+.2%}
-   • 当前仓位: {len(performance.current_positions)}
-   • 最大回撤: {performance.max_drawdown:.2%}
-   • 夏普比率: {performance.sharpe_ratio:.2f}
+   • 总收益: {performance['total_return']:+.2%}
+   • 当前仓位: {len(performance['current_positions'])}
+   • 最大回撤: {performance['max_drawdown']:.2%}
+   • 夏普比率: {performance['sharpe_ratio']:.2f}
 """
             
             await update.message.reply_text(performance_msg, parse_mode='Markdown')
@@ -264,11 +275,11 @@ class TelegramBotService:
             
             total_positions = 0
             for name, performance in manager.strategy_performances.items():
-                if performance.current_positions:
+                if performance['current_positions']:
                     positions_msg += f"🎯 **{name}**\n"
-                    for pos in performance.current_positions[:5]:  # 只显示前5个
+                    for pos in performance['current_positions'][:5]:  # 只显示前5个
                         positions_msg += f"   • {pos.get('market', 'Unknown')}: ${pos.get('size', 0):.2f}\n"
-                    total_positions += len(performance.current_positions)
+                    total_positions += len(performance['current_positions'])
             
             if total_positions == 0:
                 positions_msg += "📝 当前无持仓"
@@ -326,12 +337,12 @@ class TelegramBotService:
             
             # 风险指标
             daily_loss = manager.daily_stats.get('total_pnl', 0)
-            max_daily_loss = -5.0  # 从配置获取
+            max_daily_loss = float(os.getenv('MAX_DAILY_LOSS_USD', '50'))
             
             risk_level = "🟢 正常"
-            if daily_loss < max_daily_loss * 0.5:
+            if daily_loss < -max_daily_loss * 0.5:
                 risk_level = "🟡 警告"
-            if daily_loss < max_daily_loss:
+            if daily_loss < -max_daily_loss:
                 risk_level = "🔴 危险"
             
             risk_msg += f"""
@@ -341,7 +352,7 @@ class TelegramBotService:
 📊 总风险敞口: ${manager.total_capital * 0.8:.2f}
 
 🛡️ 风险控制:
-   • 单笔最大交易: ${manager.risk_params.get('max_trade_size', 100):.2f}
+   • 单笔最大交易: ${float(os.getenv('MAX_TRADE_AMOUNT_USD', '10')):.2f}
    • 最大仓位比例: {manager.risk_params.get('max_position_ratio', 0.2):.1%}
    • 止损比例: {manager.risk_params.get('stop_loss_ratio', 0.1):.1%}
 """
@@ -372,12 +383,14 @@ class TelegramBotService:
 🎯 **策略权重**
 """
             for name, config in manager.strategy_configs.items():
-                config_msg += f"   • {config.name}: {config.weight:.1%}\n"
+                config_msg += f"   • {config['name']}: {config['weight']:.1%}\n"
             
             config_msg += f"""
 ⚠️ **风险参数**
-   最大日损失: ${manager.risk_params.get('max_daily_loss', 5):.2f}
-   最大单笔: ${manager.risk_params.get('max_trade_size', 100):.2f}
+   最大日损失: ${float(os.getenv('MAX_DAILY_LOSS_USD', '50')):.2f}
+   最大单笔: ${float(os.getenv('MAX_TRADE_AMOUNT_USD', '10')):.2f}
+   最大仓位: {float(os.getenv('MAX_POSITION_SIZE', '0.3')):.1%}
+   止损比例: {float(os.getenv('STOP_LOSS_PERCENTAGE', '10')):.1%}
 """
             
             # 创建参数调整按钮
@@ -522,11 +535,28 @@ class TelegramBotService:
                 if len(parts) == 3 and parts[2] == "weight":
                     strategy_name = parts[0] + "_" + parts[1]
                     if strategy_name in manager.strategy_configs:
-                        manager.strategy_configs[strategy_name].weight = float(param_value)
+                        old_weight = manager.strategy_configs[strategy_name]['weight']
+                        new_weight = float(param_value)
+                        manager.strategy_configs[strategy_name]['weight'] = new_weight
+                        manager.strategy_configs[strategy_name]['enabled'] = new_weight > 0
+                        
+                        # 同时更新环境变量
+                        env_var_name = f"{parts[0].upper()}_{parts[1].upper()}_WEIGHT"
+                        os.environ[env_var_name] = str(new_weight)
+                        
+                        return True
                 elif len(parts) == 3 and parts[2] == "confidence":
                     strategy_name = parts[0] + "_" + parts[1]
                     if strategy_name in manager.strategy_configs:
-                        manager.strategy_configs[strategy_name].min_confidence = float(param_value)
+                        old_confidence = manager.strategy_configs[strategy_name]['min_confidence']
+                        new_confidence = float(param_value)
+                        manager.strategy_configs[strategy_name]['min_confidence'] = new_confidence
+                        
+                        # 同时更新环境变量
+                        env_var_name = f"{parts[0].upper()}_{parts[1].upper()}_MIN_CONFIDENCE"
+                        os.environ[env_var_name] = str(new_confidence)
+                        
+                        return True
             else:
                 return False
             
@@ -534,6 +564,75 @@ class TelegramBotService:
             
         except Exception:
             return False
+    
+    async def cmd_adjust_capital(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """调整资金设置"""
+        if not self._check_admin_permission(update.effective_user.id):
+            await update.callback_query.message.reply_text("❌ 需要管理员权限")
+            return
+        
+        await update.callback_query.message.reply_text("""
+💰 **资金调整**
+
+当前资金设置:
+• 总资金: $10,000.00
+
+📝 **使用方法:**
+/set capital=15000  (设置总资金为$15,000)
+/set max_trade=20    (设置单笔最大交易为$20)
+/set max_loss=100    (设置日最大损失为$100)
+
+💡 示例: /set capital=15000
+""")
+    
+    async def cmd_adjust_weights(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """调整策略权重"""
+        if not self._check_admin_permission(update.effective_user.id):
+            await update.callback_query.message.reply_text("❌ 需要管理员权限")
+            return
+        
+        await update.callback_query.message.reply_text("""
+⚖️ **策略权重调整**
+
+当前策略权重:
+• Probability Arbitrage: 100.0%
+
+📝 **使用方法:**
+/set probability_arbitrage.weight=0.6  (设置权重为60%)
+/set probability_arbitrage.confidence=0.8  (设置最小置信度为80%)
+
+💡 示例: /set probability_arbitrage.weight=0.6
+""")
+    
+    async def cmd_risk_settings(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """风险设置"""
+        if not self._check_admin_permission(update.effective_user.id):
+            await update.callback_query.message.reply_text("❌ 需要管理员权限")
+            return
+        
+        # 从环境变量读取当前风险设置
+        max_daily_loss = float(os.getenv('MAX_DAILY_LOSS_USD', '50'))
+        max_trade_size = float(os.getenv('MAX_TRADE_AMOUNT_USD', '10'))
+        max_position_size = float(os.getenv('MAX_POSITION_SIZE', '0.3'))
+        stop_loss_percentage = float(os.getenv('STOP_LOSS_PERCENTAGE', '10'))
+        
+        await update.callback_query.message.reply_text(f"""
+🛡️ **风险参数设置**
+
+当前风险设置:
+• 最大日损失: ${max_daily_loss:.2f}
+• 单笔最大交易: ${max_trade_size:.2f}
+• 最大仓位比例: {max_position_size:.1%}
+• 止损比例: {stop_loss_percentage:.1%}
+
+📝 **使用方法:**
+/set max_loss=100     (设置日最大损失为$100)
+/set max_trade=25     (设置单笔最大交易为$25)
+/set max_position=0.5 (设置最大仓位比例为50%)
+/set stop_loss=0.15   (设置止损比例为15%)
+
+💡 示例: /set max_loss=100
+""")
     
     async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """按钮回调处理"""
@@ -545,13 +644,173 @@ class TelegramBotService:
         
         data = query.data
         
-        if data == "refresh_status":
-            await self.cmd_status(update, context)
-        elif data == "show_performance":
-            await self.cmd_performance(update, context)
-        elif data == "show_config":
-            await self.cmd_config(update, context)
+        try:
+            if data == "refresh_status":
+                # 创建一个模拟的message对象用于回调处理
+                await self.cmd_status_callback(update, context)
+            elif data == "show_performance":
+                await self.cmd_performance_callback(update, context)
+            elif data == "show_config":
+                await self.cmd_config_callback(update, context)
+            elif data == "adjust_capital":
+                await self.cmd_adjust_capital(update, context)
+            elif data == "adjust_weights":
+                await self.cmd_adjust_weights(update, context)
+            elif data == "risk_settings":
+                await self.cmd_risk_settings(update, context)
+        except Exception as e:
+            self.logger.error(f"按钮回调处理失败: {e}")
+            await query.message.reply_text(f"❌ 按钮操作失败: {e}")
         # 可以添加更多按钮处理
+    
+    async def cmd_status_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """状态查询回调（用于按钮）"""
+        query = update.callback_query
+        await self.cmd_status_from_callback(query, context)
+    
+    async def cmd_performance_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """策略表现查询回调（用于按钮）"""
+        query = update.callback_query
+        await self.cmd_performance_from_callback(query, context)
+    
+    async def cmd_config_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """配置信息查询回调（用于按钮）"""
+        query = update.callback_query
+        await self.cmd_config_from_callback(query, context)
+    
+    async def cmd_status_from_callback(self, query, context: ContextTypes.DEFAULT_TYPE):
+        """从回调处理状态查询"""
+        if not self.strategy_manager:
+            await query.message.reply_text("❌ 策略管理器未连接")
+            return
+        
+        try:
+            # 获取系统状态
+            manager = self.strategy_manager
+            
+            # 安全获取属性
+            is_running = getattr(manager, 'is_running', True)
+            total_trades = manager.daily_stats.get('total_trades', 0) if hasattr(manager, 'daily_stats') else 0
+            successful_trades = manager.daily_stats.get('successful_trades', 0) if hasattr(manager, 'daily_stats') else 0
+            total_pnl = manager.daily_stats.get('total_pnl', 0.0) if hasattr(manager, 'daily_stats') else 0.0
+            total_capital = getattr(manager, 'total_capital', 1000.0)
+            
+            # 计算运行时间
+            start_time = getattr(manager, 'start_time', datetime.now())
+            runtime = datetime.now() - start_time
+            
+            # 安全计算成功率
+            success_rate = ((successful_trades/total_trades)*100) if total_trades > 0 else 0.0
+            
+            # 安全计算活跃策略
+            strategies_dict = getattr(manager, 'strategies', {})
+            active_strategies = len([s for s in strategies_dict.values() if s])
+            total_strategies = len(strategies_dict)
+            strategy_ratio = f"{active_strategies}/{total_strategies}" if total_strategies > 0 else "0/0"
+            
+            status_msg = f"""
+📊 **系统状态**
+━━━━━━━━━━━━━━━━━━━━
+
+🔄 运行状态: {'🟢 运行中' if is_running else '🔴 已停止'}
+⏰ 运行时间: {str(runtime).split('.')[0]}
+💰 总资金: ${total_capital:,.2f}
+
+📋 今日交易:
+   • 总交易数: {total_trades}
+   • 成功交易: {successful_trades}
+   • 成功率: {success_rate:.1f}%
+   • 总盈亏: ${total_pnl:+.2f}
+
+🎯 活跃策略: {strategy_ratio}
+"""
+            
+            # 创建控制按钮
+            keyboard = [
+                [InlineKeyboardButton("🔄 刷新状态", callback_data="refresh_status")],
+                [InlineKeyboardButton("📈 策略表现", callback_data="show_performance")],
+                [InlineKeyboardButton("⚙️ 参数设置", callback_data="show_config")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.message.reply_text(status_msg, parse_mode='Markdown', reply_markup=reply_markup)
+            
+        except Exception as e:
+            await query.message.reply_text(f"❌ 获取状态失败: {e}")
+    
+    async def cmd_performance_from_callback(self, query, context: ContextTypes.DEFAULT_TYPE):
+        """从回调处理策略表现查询"""
+        if not self.strategy_manager:
+            await query.message.reply_text("❌ 策略管理器未连接")
+            return
+        
+        try:
+            manager = self.strategy_manager
+            performance_msg = "📈 **策略表现**\n━━━━━━━━━━━━━━━━━━━━\n\n"
+            
+            for name, performance in manager.strategy_performances.items():
+                config = manager.strategy_configs.get(name)
+                if not config:
+                    continue
+                
+                success_rate = (performance['successful_trades'] / performance['total_trades'] * 100) if performance['total_trades'] > 0 else 0
+                
+                performance_msg += f"""
+🎯 **{config['name']}**
+   • 总交易: {performance['total_trades']}
+   • 成功交易: {performance['successful_trades']}
+   • 成功率: {success_rate:.1f}%
+   • 总收益: {performance['total_return']:+.2%}
+   • 当前仓位: {len(performance['current_positions'])}
+   • 最大回撤: {performance['max_drawdown']:.2%}
+   • 夏普比率: {performance['sharpe_ratio']:.2f}
+"""
+            
+            await query.message.reply_text(performance_msg, parse_mode='Markdown')
+            
+        except Exception as e:
+            await query.message.reply_text(f"❌ 获取表现数据失败: {e}")
+    
+    async def cmd_config_from_callback(self, query, context: ContextTypes.DEFAULT_TYPE):
+        """从回调处理配置信息查询"""
+        if not self.strategy_manager:
+            await query.message.reply_text("❌ 策略管理器未连接")
+            return
+        
+        try:
+            manager = self.strategy_manager
+            config_msg = "⚙️ **系统配置**\n━━━━━━━━━━━━━━━━━━━━\n\n"
+            
+            config_msg += f"""
+💰 **资金配置**
+   总资金: ${manager.total_capital:,.2f}
+   交易模式: {'实盘' if manager.enable_trading else '模拟'}
+
+🎯 **策略权重**
+"""
+            for name, config in manager.strategy_configs.items():
+                config_msg += f"   • {config['name']}: {config['weight']:.1%}\n"
+            
+            config_msg += f"""
+⚠️ **风险参数**
+   最大日损失: ${float(os.getenv('MAX_DAILY_LOSS_USD', '50')):.2f}
+   最大单笔: ${float(os.getenv('MAX_TRADE_AMOUNT_USD', '10')):.2f}
+   最大仓位: {float(os.getenv('MAX_POSITION_SIZE', '0.3')):.1%}
+   止损比例: {float(os.getenv('STOP_LOSS_PERCENTAGE', '10')):.1%}
+"""
+            
+            # 创建参数调整按钮
+            keyboard = [
+                [InlineKeyboardButton("💰 调整资金", callback_data="adjust_capital")],
+                [InlineKeyboardButton("⚖️ 调整权重", callback_data="adjust_weights")],
+                [InlineKeyboardButton("🛡️ 风险设置", callback_data="risk_settings")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.message.reply_text(config_msg, parse_mode='Markdown', reply_markup=reply_markup)
+            
+        except Exception as e:
+            await query.message.reply_text(f"❌ 获取配置信息失败: {e}")
     
     def _check_permission(self, user_id: int) -> bool:
         """检查用户权限"""
@@ -593,7 +852,28 @@ class TelegramBotService:
     def _run_bot(self):
         """运行Bot"""
         try:
-            self.application.run_polling(drop_pending_updates=True)
+            import asyncio
+            # 创建新的事件循环
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            async def run_polling():
+                await self.application.initialize()
+                await self.application.start()
+                await self.application.updater.start_polling(drop_pending_updates=True)
+                
+                # 保持运行
+                while self.is_running:
+                    await asyncio.sleep(1)
+                
+                # 清理
+                await self.application.updater.stop()
+                await self.application.stop()
+                await self.application.shutdown()
+            
+            loop.run_until_complete(run_polling())
+            loop.close()
+            
         except Exception as e:
             self.logger.error(f"Bot运行错误: {e}")
     

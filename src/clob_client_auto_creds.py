@@ -508,7 +508,7 @@ class ClobTradingClientAutoCreds:
                             import json
                             parsed = json.loads(token_value)
                             if isinstance(parsed, list) and len(parsed) > 0:
-                                return parsed[0]  # 返回第一个token ID
+                                return str(parsed[0])  # 返回第一个token ID的字符串形式
                             else:
                                 return token_value
                         except (json.JSONDecodeError, TypeError):
@@ -571,13 +571,33 @@ class ClobTradingClientAutoCreds:
     def get_market_token_id(self, market: Dict) -> Optional[str]:
         """从市场数据中提取正确的token_id"""
         
-        # 方法1: 直接查找常见字段
+        # 方法1: 优先查找clobTokenIds字段（这是新的正确字段）
+        if 'clobTokenIds' in market and market['clobTokenIds']:
+            token_ids = market['clobTokenIds']
+            if isinstance(token_ids, list) and len(token_ids) > 0:
+                return str(token_ids[0])  # 返回第一个token ID（通常是"Yes"）
+            elif isinstance(token_ids, str):
+                try:
+                    import json
+                    parsed = json.loads(token_ids)
+                    if isinstance(parsed, list) and len(parsed) > 0:
+                        return str(parsed[0])
+                except (json.JSONDecodeError, TypeError):
+                    # 如果不是JSON，可能已经是字符串形式的token ID
+                    return token_ids
+        
+        # 方法2: 检查嵌套的markets数组（Gamma API返回的结构）
+        if 'markets' in market and isinstance(market['markets'], list) and len(market['markets']) > 0:
+            nested_market = market['markets'][0]
+            return self.get_market_token_id(nested_market)
+        
+        # 方法3: 直接查找常见字段
         direct_fields = ['clobTokenId', 'token_id', 'tokenAddress', 'condition_id', 'outcomeTokenId']
         for field in direct_fields:
             if field in market and market[field]:
-                return market[field]
+                return str(market[field])
         
-        # 方法2: 检查outcomeTokens结构
+        # 方法4: 检查outcomeTokens结构
         if 'outcomeTokens' in market:
             outcome_tokens = market['outcomeTokens']
             if isinstance(outcome_tokens, list) and len(outcome_tokens) > 0:
@@ -590,19 +610,19 @@ class ClobTradingClientAutoCreds:
                 first_token = outcome_tokens[0]
                 return first_token.get('address') or first_token.get('token_id')
         
-        # 方法3: 检查tokens结构
+        # 方法5: 检查tokens结构
         if 'tokens' in market:
             tokens = market['tokens']
             if isinstance(tokens, list) and len(tokens) > 0:
                 first_token = tokens[0]
                 return first_token.get('address') or first_token.get('token_id')
         
-        # 方法4: 检查嵌套的market数据
+        # 方法6: 检查嵌套的market数据
         if 'market' in market:
             nested_market = market['market']
             return self.get_market_token_id(nested_market)
         
-        # 方法5: 检查question markets结构
+        # 方法7: 检查question markets结构
         if 'question' in market and isinstance(market['question'], dict):
             question_market = market['question']
             return self.get_market_token_id(question_market)
@@ -638,6 +658,11 @@ class ClobTradingClientAutoCreds:
             
             self.logger.info(f"创建订单: {side} {size} @ {price} (总金额: ${trade_amount:.2f})")
             
+            # 确保参数格式正确
+            token_id = str(token_id)  # 确保token_id是字符串
+            price = float(price)     # 确保价格是浮点数
+            size = float(size)       # 确保数量是浮点数
+            
             # 确定买卖方向
             order_side = BUY if side.upper() == 'BUY' else SELL
             
@@ -649,21 +674,67 @@ class ClobTradingClientAutoCreds:
                 token_id=token_id
             )
             
-            # 创建并发布订单
-            order_result = self.client.create_and_post_order(order_args)
-            
-            self.logger.info(f"订单创建成功: {order_result}")
-            
-            return {
-                'success': True,
-                'order_id': getattr(order_result, 'order_id', None),
-                'result': order_result,
-                'trade_amount': trade_amount,
-                'adjusted_size': size if trade_amount == MAX_TRADE_AMOUNT_USD else None
-            }
+            # 尝试创建订单，如果签名失败则尝试不同的签名类型
+            try:
+                order_result = self.client.create_and_post_order(order_args)
+                self.logger.info(f"订单创建成功: {order_result}")
+                
+                return {
+                    'success': True,
+                    'order_id': getattr(order_result, 'order_id', None),
+                    'result': order_result,
+                    'trade_amount': trade_amount,
+                    'adjusted_size': size if trade_amount == MAX_TRADE_AMOUNT_USD else None
+                }
+                
+            except Exception as signature_error:
+                error_msg = str(signature_error)
+                if "invalid signature" in error_msg.lower():
+                    self.logger.warning(f"签名验证失败，尝试重新初始化客户端...")
+                    
+                    # 重新初始化客户端
+                    self._initialize_client()
+                    
+                    if not self.client:
+                        raise Exception("重新初始化客户端失败")
+                    
+                    # 再次尝试创建订单
+                    order_result = self.client.create_and_post_order(order_args)
+                    self.logger.info(f"重新初始化后订单创建成功: {order_result}")
+                    
+                    return {
+                        'success': True,
+                        'order_id': getattr(order_result, 'order_id', None),
+                        'result': order_result,
+                        'trade_amount': trade_amount,
+                        'adjusted_size': size if trade_amount == MAX_TRADE_AMOUNT_USD else None,
+                        'retry_success': True
+                    }
+                else:
+                    # 如果不是签名错误，直接抛出
+                    raise signature_error
             
         except Exception as e:
             self.logger.error(f"创建订单失败: {e}")
+            
+            # 详细错误分析
+            error_msg = str(e)
+            if "invalid signature" in error_msg.lower():
+                self.logger.error("签名验证失败，可能的原因：")
+                self.logger.error("1. API凭证过期或无效")
+                self.logger.error("2. 私钥格式错误")
+                self.logger.error("3. 签名类型不匹配")
+                self.logger.error("4. 网络连接问题")
+            elif "invalid amounts" in error_msg.lower():
+                self.logger.error("订单金额无效，可能的原因：")
+                self.logger.error("1. 订单数量或价格过小")
+                self.logger.error("2. 不符合市场最小订单要求")
+                self.logger.error("3. 价格精度问题")
+            elif "insufficient" in error_msg.lower():
+                self.logger.error("余额不足，但签名验证成功")
+            elif "market not found" in error_msg.lower():
+                self.logger.error("市场未找到，Token ID可能无效")
+            
             return {
                 'success': False,
                 'error': str(e),

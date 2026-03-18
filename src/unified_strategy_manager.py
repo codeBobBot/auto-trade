@@ -98,41 +98,54 @@ class UnifiedStrategyManager:
             except Exception as e:
                 self.logger.error(f"Telegram Bot初始化失败: {e}")
         
+        # 从环境变量读取策略配置
+        info_weight = float(os.getenv('INFORMATION_ADVANTAGE_WEIGHT', '0.25'))
+        info_confidence = float(os.getenv('INFORMATION_ADVANTAGE_MIN_CONFIDENCE', '0.6'))
+        
+        prob_weight = float(os.getenv('PROBABILITY_ARBITRAGE_WEIGHT', '0.6'))
+        prob_confidence = float(os.getenv('PROBABILITY_ARBITRAGE_MIN_CONFIDENCE', '0.7'))
+        
+        cross_weight = float(os.getenv('CROSS_MARKET_ARBITRAGE_WEIGHT', '0.15'))
+        cross_confidence = float(os.getenv('CROSS_MARKET_ARBITRAGE_MIN_CONFIDENCE', '0.6'))
+        
+        time_weight = float(os.getenv('TIME_ARBITRAGE_WEIGHT', '0.0'))
+        time_confidence = float(os.getenv('TIME_ARBITRAGE_MIN_CONFIDENCE', '0.6'))
+        
         # 策略配置 - 应用用户配置的风险限制
         self.strategy_configs = {
             'information_advantage': StrategyConfig(
                 name='信息优势交易',
-                enabled=True,
-                weight=0.35,  # 35%资金
-                max_position=min(2000.0, MAX_TRADE_AMOUNT_USD),  # 不超过用户配置
-                min_confidence=0.7,
+                enabled=info_weight > 0,  # 权重为0时禁用
+                weight=info_weight,
+                max_position=min(self.total_capital * info_weight, MAX_TRADE_AMOUNT_USD),  # 不超过用户配置
+                min_confidence=info_confidence,
                 scan_interval=30,
                 priority=1
             ),
             'probability_arbitrage': StrategyConfig(
                 name='概率套利',
-                enabled=True,
-                weight=0.25,  # 25%资金
-                max_position=min(1500.0, MAX_TRADE_AMOUNT_USD),  # 不超过用户配置
-                min_confidence=0.6,
+                enabled=prob_weight > 0,  # 权重为0时禁用
+                weight=prob_weight,
+                max_position=min(self.total_capital * prob_weight, MAX_TRADE_AMOUNT_USD),  # 不超过用户配置
+                min_confidence=prob_confidence,
                 scan_interval=60,
                 priority=2
             ),
             'cross_market_arbitrage': StrategyConfig(
                 name='跨市场套利',
-                enabled=True,
-                weight=0.20,  # 20%资金
-                max_position=min(1000.0, MAX_TRADE_AMOUNT_USD),  # 不超过用户配置
-                min_confidence=0.6,
+                enabled=cross_weight > 0,  # 权重为0时禁用
+                weight=cross_weight,
+                max_position=min(self.total_capital * cross_weight, MAX_TRADE_AMOUNT_USD),  # 不超过用户配置
+                min_confidence=cross_confidence,
                 scan_interval=90,
                 priority=3
             ),
             'time_arbitrage': StrategyConfig(
                 name='时间套利',
-                enabled=True,
-                weight=0.20,  # 20%资金
-                max_position=min(1000.0, MAX_TRADE_AMOUNT_USD),  # 不超过用户配置
-                min_confidence=0.6,
+                enabled=time_weight > 0,  # 权重为0时禁用
+                weight=time_weight,
+                max_position=min(self.total_capital * time_weight, MAX_TRADE_AMOUNT_USD),  # 不超过用户配置
+                min_confidence=time_confidence,
                 scan_interval=120,
                 priority=4
             )
@@ -148,12 +161,13 @@ class UnifiedStrategyManager:
             for name in self.strategy_configs.keys()
         }
         
-        # 风险管理
+        # 从环境变量读取风险管理参数
         self.risk_params = {
-            'max_total_exposure': 0.8,  # 最大总敞口80%
-            'max_single_strategy': 0.3,  # 单策略最大30%
-            'stop_loss_threshold': -0.05,  # 止损阈值-5%
-            'daily_loss_limit': -500.0,  # 日损失限制-500 USDC
+            'max_total_exposure': float(os.getenv('MAX_TOTAL_EXPOSURE', '0.8')),  # 最大总敞口
+            'max_single_strategy': float(os.getenv('MAX_POSITION_SIZE', '0.3')),  # 单策略最大仓位
+            'stop_loss_threshold': -float(os.getenv('STOP_LOSS_PERCENTAGE', '10')) / 100,  # 止损阈值
+            'daily_loss_limit': -float(os.getenv('MAX_DAILY_LOSS_USD', '50')),  # 日损失限制
+            'max_trade_size': float(os.getenv('MAX_TRADE_AMOUNT_USD', '10')),  # 单笔最大交易
             'concurrent_trades': 5,  # 并发交易数
             'min_trade_interval': 30  # 最小交易间隔30秒
         }
