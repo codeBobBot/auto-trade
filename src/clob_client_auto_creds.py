@@ -100,6 +100,15 @@ class ClobTradingClientAutoCreds:
             return {'success': False, 'error': 'client not ready'}
 
         try:
+            # 预检查余额和授权
+            balance_check = self._check_balance_and_allowance()
+            if not balance_check['sufficient']:
+                return {
+                    'success': False,
+                    'error': balance_check['error'],
+                    'balance_info': balance_check['info']
+                }
+
             price = Decimal(str(price))
             size = Decimal(str(size))
 
@@ -123,9 +132,102 @@ class ClobTradingClientAutoCreds:
             }
 
         except Exception as e:
+            error_msg = str(e)
+            
+            # 分析具体错误类型
+            if "not enough balance" in error_msg.lower():
+                return {
+                    'success': False,
+                    'error': '余额不足',
+                    'error_type': 'insufficient_balance',
+                    'suggestion': '请充值USDC到钱包地址: ' + self.wallet_address
+                }
+            elif "allowance" in error_msg.lower():
+                return {
+                    'success': False,
+                    'error': 'CLOB合约授权不足',
+                    'error_type': 'insufficient_allowance',
+                    'suggestion': '请在Polymarket网站授权CLOB合约进行USDC交易'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'error_type': 'unknown'
+                }
+
+    def _check_balance_and_allowance(self) -> Dict:
+        """检查余额和授权状态"""
+        try:
+            from py_clob_client.clob_types import AssetType, BalanceAllowanceParams
+            params = BalanceAllowanceParams(asset_type=AssetType.COLLATERAL)
+            balance_info = self.client.get_balance_allowance(params)
+            
+            if not isinstance(balance_info, dict):
+                return {
+                    'sufficient': False,
+                    'error': '无法获取余额信息',
+                    'info': balance_info
+                }
+            
+            # 检查余额
+            raw_balance = balance_info.get('balance', '0')
+            try:
+                balance_int = int(raw_balance)
+                balance_usdc = balance_int / 1_000_000
+            except (ValueError, TypeError):
+                balance_usdc = 0.0
+            
+            # 检查授权
+            allowances = balance_info.get('allowances', {})
+            clob_address = '0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E'
+            clob_allowance = allowances.get(clob_address, '0')
+            
+            try:
+                allowance_int = int(clob_allowance)
+                max_allowance = 115792089237316195423570985008687907853269984665640564039457584007913129639935
+            except (ValueError, TypeError):
+                allowance_int = 0
+            
+            # 判断是否充足
+            min_required_balance = 5.0  # 最小需要5 USDC
+            
+            if balance_usdc < min_required_balance:
+                return {
+                    'sufficient': False,
+                    'error': f'余额不足，当前余额: {balance_usdc} USDC，最小需要: {min_required_balance} USDC',
+                    'info': {
+                        'balance_usdc': balance_usdc,
+                        'min_required': min_required_balance,
+                        'wallet_address': self.wallet_address
+                    }
+                }
+            
+            if allowance_int < max_allowance:
+                return {
+                    'sufficient': False,
+                    'error': 'CLOB合约授权不足',
+                    'info': {
+                        'allowance': clob_allowance,
+                        'max_allowance': max_allowance,
+                        'clob_address': clob_address
+                    }
+                }
+            
             return {
-                'success': False,
-                'error': str(e)
+                'sufficient': True,
+                'info': {
+                    'balance_usdc': balance_usdc,
+                    'allowance': clob_allowance,
+                    'wallet_address': self.wallet_address
+                }
+            }
+            
+        except Exception as e:
+            return {
+                'sufficient': False,
+                'error': f'余额检查失败: {str(e)}',
+                'info': {'error': str(e)}
             }
 
     def get_balance(self):

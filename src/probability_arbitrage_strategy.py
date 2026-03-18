@@ -3550,7 +3550,26 @@ class ProbabilityArbitrageStrategy:
     def get_market_token_id(self, market: Dict) -> Optional[str]:
         """从市场数据中提取token_id"""
         try:
-            # 方法1: 检查clobTokenIds字段
+            # 方法1: 检查嵌套的markets数组（新的数据结构）
+            if 'markets' in market and isinstance(market['markets'], list) and len(market['markets']) > 0:
+                nested_market = market['markets'][0]
+                
+                # 检查clobTokenIds字段（JSON字符串）
+                if 'clobTokenIds' in nested_market and nested_market['clobTokenIds']:
+                    token_ids_str = nested_market['clobTokenIds']
+                    try:
+                        import json
+                        token_ids = json.loads(token_ids_str)
+                        if isinstance(token_ids, list) and len(token_ids) > 0:
+                            return str(token_ids[0])
+                    except (json.JSONDecodeError, TypeError):
+                        self.logger.warning(f"无法解析clobTokenIds JSON: {token_ids_str}")
+                
+                # 检查clobTokenId字段
+                if 'clobTokenId' in nested_market and nested_market['clobTokenId']:
+                    return str(nested_market['clobTokenId'])
+            
+            # 方法2: 检查顶层的clobTokenIds字段
             if 'clobTokenIds' in market and market['clobTokenIds']:
                 token_ids = market['clobTokenIds']
                 if isinstance(token_ids, list) and len(token_ids) > 0:
@@ -3563,11 +3582,6 @@ class ProbabilityArbitrageStrategy:
                             return str(parsed[0])
                     except (json.JSONDecodeError, TypeError):
                         return token_ids
-            
-            # 方法2: 检查嵌套的markets数组
-            if 'markets' in market and isinstance(market['markets'], list) and len(market['markets']) > 0:
-                nested_market = market['markets'][0]
-                return self.get_market_token_id(nested_market)
             
             # 方法3: 直接查找常见字段
             direct_fields = ['clobTokenId', 'token_id', 'tokenAddress', 'condition_id', 'outcomeTokenId']
@@ -3587,6 +3601,12 @@ class ProbabilityArbitrageStrategy:
                     # 如果没找到Yes，返回第一个
                     first_token = outcome_tokens[0]
                     return first_token.get('address') or first_token.get('token_id')
+            
+            # 方法5: 最后的fallback - 使用市场ID
+            market_id = market.get('id')
+            if market_id:
+                self.logger.warning(f"使用市场ID作为Token ID fallback: {market_id}")
+                return str(market_id)
             
             return None
             
