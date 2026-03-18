@@ -16,7 +16,7 @@ ERC20_ABI = [{
     "name": "allowance",
     "outputs": [{"name": "","type": "uint256"}],
     "type": "function"
-}]
+}] 
 
 contract = web3.eth.contract(address=USDC, abi=ERC20_ABI)
 
