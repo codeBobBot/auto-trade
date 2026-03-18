@@ -17,9 +17,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
-from gamma_client import PolymarketGammaClient
-from clob_client_auto_creds import ClobTradingClientAutoCreds, MAX_TRADE_AMOUNT_USD, MAX_DAILY_LOSS_USD, STOP_LOSS_PERCENTAGE
-from logger_config import get_strategy_logger
+from src.gamma_client import PolymarketGammaClient
+from src.clob_client_auto_creds import ClobTradingClientAutoCreds, MAX_TRADE_AMOUNT_USD
+from src.logger_config import get_strategy_logger
 
 @dataclass
 class TimeArbitrageOpportunity:
@@ -522,6 +522,7 @@ class TimeArbitrageStrategy:
     def calculate_position_size(self, opportunity: TimeArbitrageOpportunity) -> float:
         """计算仓位大小 - 应用用户配置的风险限制"""
         # 1. 检查日损失限制
+        MAX_DAILY_LOSS_USD = float(os.getenv('MAX_DAILY_LOSS_USD', 50))
         if hasattr(self, 'daily_pnl') and self.daily_pnl < -MAX_DAILY_LOSS_USD:
             self.logger.warning(f"日损失 ${abs(self.daily_pnl):.2f} 已超过限制 ${MAX_DAILY_LOSS_USD:.2f}，停止交易")
             return 0.0
@@ -533,6 +534,7 @@ class TimeArbitrageStrategy:
         confidence_multiplier = opportunity.confidence
         
         # 4. 根据预期收益调整 - 应用止损百分比
+        STOP_LOSS_PERCENTAGE = float(os.getenv('STOP_LOSS_PERCENTAGE', 10))
         return_multiplier = min(opportunity.expected_return * 6, 2.0)
         # 如果预期收益小于止损百分比，大幅降低仓位
         if opportunity.expected_return < STOP_LOSS_PERCENTAGE / 100:

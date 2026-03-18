@@ -17,9 +17,9 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
-from gamma_client import PolymarketGammaClient
-from clob_client_auto_creds import ClobTradingClientAutoCreds, MAX_TRADE_AMOUNT_USD, MAX_DAILY_LOSS_USD, STOP_LOSS_PERCENTAGE
-from logger_config import get_strategy_logger
+from src.gamma_client import PolymarketGammaClient
+from src.clob_client_auto_creds import ClobTradingClientAutoCreds, MAX_TRADE_AMOUNT_USD
+from src.logger_config import get_strategy_logger
 
 @dataclass
 class ArbitrageOpportunity:
@@ -3547,32 +3547,77 @@ class ProbabilityArbitrageStrategy:
                     f"描述: {opportunity.description[:50]}..."
                 )
     
+    def get_market_token_id(self, market: Dict) -> Optional[str]:
+        """从市场数据中提取token_id"""
+        try:
+            # 方法1: 检查clobTokenIds字段
+            if 'clobTokenIds' in market and market['clobTokenIds']:
+                token_ids = market['clobTokenIds']
+                if isinstance(token_ids, list) and len(token_ids) > 0:
+                    return str(token_ids[0])
+                elif isinstance(token_ids, str):
+                    try:
+                        import json
+                        parsed = json.loads(token_ids)
+                        if isinstance(parsed, list) and len(parsed) > 0:
+                            return str(parsed[0])
+                    except (json.JSONDecodeError, TypeError):
+                        return token_ids
+            
+            # 方法2: 检查嵌套的markets数组
+            if 'markets' in market and isinstance(market['markets'], list) and len(market['markets']) > 0:
+                nested_market = market['markets'][0]
+                return self.get_market_token_id(nested_market)
+            
+            # 方法3: 直接查找常见字段
+            direct_fields = ['clobTokenId', 'token_id', 'tokenAddress', 'condition_id', 'outcomeTokenId']
+            for field in direct_fields:
+                if field in market and market[field]:
+                    return str(market[field])
+            
+            # 方法4: 检查outcomeTokens结构
+            if 'outcomeTokens' in market:
+                outcome_tokens = market['outcomeTokens']
+                if isinstance(outcome_tokens, list) and len(outcome_tokens) > 0:
+                    # 查找"Yes"代币
+                    for token in outcome_tokens:
+                        if isinstance(token, dict):
+                            if token.get('outcome') == 'Yes' or 'yes' in str(token.get('outcome', '')).lower():
+                                return token.get('address') or token.get('token_id')
+                    # 如果没找到Yes，返回第一个
+                    first_token = outcome_tokens[0]
+                    return first_token.get('address') or first_token.get('token_id')
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"获取token_id失败: {e}")
+            return None
+    
     def execute_buy_order(self, market: Dict, opportunity: ArbitrageOpportunity):
         """执行买入订单"""
         position_size = self.calculate_arbitrage_position_size(market, opportunity)
         
         try:
-            # 获取token_id（条件代币地址）- 使用增强fallback
-            token_id = self.trading_client.get_market_token_id_enhanced(market)
+            # 获取token_id（条件代币地址）
+            token_id = self.get_market_token_id(market)
             if not token_id:
-                # 尝试使用增强fallback方法
-                result = self.trading_client.create_order_with_enhanced_fallback(
-                    market, 'BUY', position_size, self.get_market_yes_price(market)
-                )
-                if result.get('success'):
-                    order_id = result.get('order_id')
-                    self.logger.info(f"买入订单: {order_id} - {market['question'][:30]}...")
-                else:
-                    self.logger.error(f"买入失败: {result.get('error')}")
+                self.logger.error(f"无法获取token_id for market: {market.get('id', 'unknown')}")
                 return
             
-            order_id = self.trading_client.create_order(
+            # 直接创建订单
+            result = self.trading_client.create_order(
                 token_id=token_id,
                 side='BUY',
                 size=position_size,
                 price=self.get_market_yes_price(market)
             )
-            self.logger.info(f"买入订单: {order_id} - {market['question'][:30]}...")
+            
+            if result.get('success'):
+                order_id = result.get('order_id')
+                self.logger.info(f"买入订单: {order_id} - {market['question'][:30]}...")
+            else:
+                self.logger.error(f"买入失败: {result.get('error')}")
             
         except Exception as e:
             self.logger.error(f"买入失败: {e}")
@@ -3582,27 +3627,25 @@ class ProbabilityArbitrageStrategy:
         position_size = self.calculate_arbitrage_position_size(market, opportunity)
         
         try:
-            # 获取token_id（条件代币地址）- 使用增强fallback
-            token_id = self.trading_client.get_market_token_id_enhanced(market)
+            # 获取token_id（条件代币地址）
+            token_id = self.get_market_token_id(market)
             if not token_id:
-                # 尝试使用增强fallback方法
-                result = self.trading_client.create_order_with_enhanced_fallback(
-                    market, 'SELL', position_size, self.get_market_yes_price(market)
-                )
-                if result.get('success'):
-                    order_id = result.get('order_id')
-                    self.logger.info(f"卖出订单: {order_id} - {market['question'][:30]}...")
-                else:
-                    self.logger.error(f"卖出失败: {result.get('error')}")
+                self.logger.error(f"无法获取token_id for market: {market.get('id', 'unknown')}")
                 return
             
-            order_id = self.trading_client.create_order(
+            # 直接创建订单
+            result = self.trading_client.create_order(
                 token_id=token_id,
                 side='SELL',
                 size=position_size,
                 price=self.get_market_yes_price(market)
             )
-            self.logger.info(f"卖出订单: {order_id} - {market['question'][:30]}...")
+            
+            if result.get('success'):
+                order_id = result.get('order_id')
+                self.logger.info(f"卖出订单: {order_id} - {market['question'][:30]}...")
+            else:
+                self.logger.error(f"卖出失败: {result.get('error')}")
             
         except Exception as e:
             self.logger.error(f"卖出失败: {e}")
@@ -3610,6 +3653,7 @@ class ProbabilityArbitrageStrategy:
     def calculate_arbitrage_position_size(self, market: Dict, opportunity: ArbitrageOpportunity) -> float:
         """动态计算套利仓位大小 - 应用用户配置的风险限制"""
         # 1. 检查日损失限制
+        MAX_DAILY_LOSS_USD = float(os.getenv('MAX_DAILY_LOSS_USD', 50))
         if hasattr(self, 'daily_pnl') and self.daily_pnl < -MAX_DAILY_LOSS_USD:
             self.logger.warning(f"日损失 ${abs(self.daily_pnl):.2f} 已超过限制 ${MAX_DAILY_LOSS_USD:.2f}，停止交易")
             return 0.0
@@ -3621,6 +3665,7 @@ class ProbabilityArbitrageStrategy:
         confidence_multiplier = opportunity.confidence
         
         # 4. 预期收益调整 (25%) - 应用止损百分比
+        STOP_LOSS_PERCENTAGE = float(os.getenv('STOP_LOSS_PERCENTAGE', 10))
         return_multiplier = min(opportunity.expected_return * 8, 2.0)
         # 如果预期收益小于止损百分比，大幅降低仓位
         if opportunity.expected_return < STOP_LOSS_PERCENTAGE / 100:
@@ -3736,6 +3781,7 @@ class ProbabilityArbitrageStrategy:
         position_size = min(position_size, liquidity_limit)
         
         # 4. 基于预期收益的仓位限制 - 应用止损百分比
+        STOP_LOSS_PERCENTAGE = float(os.getenv('STOP_LOSS_PERCENTAGE', 10))
         if opportunity.expected_return < STOP_LOSS_PERCENTAGE / 100:  # 低收益且低于止损，限制仓位
             position_size *= 0.5
         elif opportunity.expected_return > 0.1:  # 高收益可以增加仓位

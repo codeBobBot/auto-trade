@@ -19,14 +19,14 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from information_advantage_strategy import InformationAdvantageStrategy
-from probability_arbitrage_strategy import ProbabilityArbitrageStrategy
-from cross_market_arbitrage_strategy import CrossMarketArbitrageStrategy
-from time_arbitrage_strategy import TimeArbitrageStrategy
-from notification_service import NotificationService, get_notification_service
-from telegram_bot_service import TelegramBotService, get_telegram_bot
-from logger_config import get_system_logger, get_strategy_logger
-from clob_client_auto_creds import MAX_TRADE_AMOUNT_USD, MAX_DAILY_LOSS_USD, STOP_LOSS_PERCENTAGE
+from src.information_advantage_strategy import InformationAdvantageStrategy
+from src.probability_arbitrage_strategy import ProbabilityArbitrageStrategy
+from src.cross_market_arbitrage_strategy import CrossMarketArbitrageStrategy
+from src.time_arbitrage_strategy import TimeArbitrageStrategy
+from src.notification_service import NotificationService, get_notification_service
+from src.telegram_bot_service import TelegramBotService, get_telegram_bot
+from src.logger_config import get_system_logger, get_strategy_logger
+from src.clob_client_auto_creds import MAX_TRADE_AMOUNT_USD
 
 @dataclass
 class StrategyConfig:
@@ -463,6 +463,7 @@ class UnifiedStrategyManager:
             return False
         
         # 检查预期收益 - 应用用户配置的止损百分比
+        STOP_LOSS_PERCENTAGE = float(os.getenv('STOP_LOSS_PERCENTAGE', 10))
         if hasattr(signal, 'expected_return') and signal.expected_return < STOP_LOSS_PERCENTAGE / 100:
             self.logger.warning(f"预期收益 {signal.expected_return:.1%} 低于用户止损阈值 {STOP_LOSS_PERCENTAGE}%")
             return False
