@@ -203,24 +203,13 @@ class ClobTradingClientAutoCreds:
             except (ValueError, TypeError):
                 balance_usdc = 0.0
             
-            # 检查授权
-            allowances = balance_info.get('allowances', {})
-            clob_address = '0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E'
-            clob_allowance = allowances.get(clob_address, '0')
-            
-            try:
-                allowance_int = int(clob_allowance)
-                max_allowance = 115792089237316195423570985008687907853269984665640564039457584007913129639935
-            except (ValueError, TypeError):
-                allowance_int = 0
-            
             # 判断是否充足
             min_required_balance = 5.0  # 最小需要5 USDC
             
             if balance_usdc < min_required_balance:
                 return {
                     'sufficient': False,
-                    'error': f'余额不足，当前余额: {balance_usdc} USDC，最小需要: {min_required_balance} USDC',
+                    'error': f'余额不足，当前余额: {balance_usdc:.2f} USDC，最小需要: {min_required_balance} USDC',
                     'info': {
                         'balance_usdc': balance_usdc,
                         'min_required': min_required_balance,
@@ -228,14 +217,29 @@ class ClobTradingClientAutoCreds:
                     }
                 }
             
-            if allowance_int < max_allowance:
+            # 检查授权 - 只要有足够的授权额度即可，不要求无限授权
+            # 授权需要至少覆盖最大交易金额的100倍（留足安全边际）
+            min_required_allowance = MAX_TRADE_AMOUNT_USD * 100
+            
+            allowances = balance_info.get('allowances', {})
+            clob_address = '0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E'
+            clob_allowance = allowances.get(clob_address, '0')
+            
+            try:
+                allowance_int = int(clob_allowance)
+                allowance_usdc = allowance_int / 1_000_000
+            except (ValueError, TypeError):
+                allowance_usdc = 0.0
+            
+            if allowance_usdc < min_required_allowance:
                 return {
                     'sufficient': False,
                     'error': 'CLOB合约授权不足',
                     'info': {
-                        'allowance': clob_allowance,
-                        'max_allowance': max_allowance,
-                        'clob_address': clob_address
+                        'allowance_usdc': allowance_usdc,
+                        'min_required': min_required_allowance,
+                        'clob_address': clob_address,
+                        'suggestion': f'请在Polymarket网站授权至少 {min_required_allowance} USDC'
                     }
                 }
             

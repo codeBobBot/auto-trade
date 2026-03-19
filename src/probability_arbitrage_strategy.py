@@ -55,6 +55,9 @@ class ProbabilityArbitrageStrategy:
         self.executed_opportunities = set()  # 存储已执行的套利机会ID
         self.logger.info("重复下单防护机制已启用 - 永久一次下单")
         
+        # 持仓跟踪 - 用于检查是否已持仓
+        self.current_positions: List[Dict] = []
+        
         # 智能互斥事件组定义
         self.mutually_exclusive_groups = {
             # 选举相关 - 精细化分组
@@ -703,6 +706,11 @@ class ProbabilityArbitrageStrategy:
                     self.logger.info(f"   预期收益: {opportunity.expected_return:.2%}")
                     self.logger.info(f"   置信度: {opportunity.confidence:.2f}")
                     self.logger.info(f"   描述: {opportunity.description}")
+                    
+                    # 检查是否已持仓，如果已持仓则跳过发送通知
+                    if self.has_position_in_opportunity(opportunity):
+                        self.logger.info(f"套利机会涉及的市场已有持仓，跳过发送Telegram通知: {opportunity.description[:50]}...")
+                        continue
                     
                     # 发送套利机会通知到Telegram
                     if self.notification_service:
@@ -2940,6 +2948,26 @@ class ProbabilityArbitrageStrategy:
         # 默认情况下，认为不互斥（保守策略）
         return False
     
+    def has_existing_position(self, market: Dict) -> bool:
+        """检查是否已持有指定市场的仓位"""
+        market_id = market.get('id', '')
+        if not market_id:
+            return False
+        
+        for position in self.current_positions:
+            if position.get('market_id') == market_id:
+                return True
+        
+        return False
+    
+    def has_position_in_opportunity(self, opportunity: ArbitrageOpportunity) -> bool:
+        """检查套利机会中的任何市场是否已有持仓"""
+        for market in opportunity.markets:
+            if self.has_existing_position(market):
+                self.logger.info(f"市场已有持仓，跳过通知: {market.get('question', 'Unknown')[:50]}...")
+                return True
+        return False
+    
     def generate_opportunity_id(self, opportunity: ArbitrageOpportunity) -> str:
         """生成套利机会的唯一ID"""
         # 基于市场ID和动作生成唯一标识
@@ -3636,6 +3664,19 @@ class ProbabilityArbitrageStrategy:
             if result.get('success'):
                 order_id = result.get('order_id')
                 self.logger.info(f"买入订单: {order_id} - {market['question'][:30]}...")
+                
+                # 添加持仓记录
+                position = {
+                    'market_id': market.get('id', ''),
+                    'market_question': market.get('question', ''),
+                    'direction': 'buy',
+                    'size': position_size,
+                    'entry_price': self.get_market_yes_price(market),
+                    'entry_time': datetime.now(),
+                    'order_id': order_id
+                }
+                self.current_positions.append(position)
+                self.logger.info(f"已添加持仓记录: {market['question'][:30]}... 仓位: ${position_size:.2f}")
             else:
                 self.logger.error(f"买入失败: {result.get('error')}")
             
@@ -3664,6 +3705,19 @@ class ProbabilityArbitrageStrategy:
             if result.get('success'):
                 order_id = result.get('order_id')
                 self.logger.info(f"卖出订单: {order_id} - {market['question'][:30]}...")
+                
+                # 添加持仓记录（卖出仓位）
+                position = {
+                    'market_id': market.get('id', ''),
+                    'market_question': market.get('question', ''),
+                    'direction': 'sell',
+                    'size': position_size,
+                    'entry_price': self.get_market_yes_price(market),
+                    'entry_time': datetime.now(),
+                    'order_id': order_id
+                }
+                self.current_positions.append(position)
+                self.logger.info(f"已添加持仓记录: {market['question'][:30]}... 卖出仓位: ${position_size:.2f}")
             else:
                 self.logger.error(f"卖出失败: {result.get('error')}")
             

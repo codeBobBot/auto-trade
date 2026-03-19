@@ -55,6 +55,9 @@ class InformationAdvantageStrategy:
         self.executed_signals = set()  # 存储已执行的交易信号ID
         self.logger.info("重复下单防护机制已启用 - 永久一次下单")
         
+        # 持仓跟踪 - 用于检查是否已持仓
+        self.current_positions: List[Dict] = []
+        
         # 交易关键词映射 - 优化版本
         self.keyword_market_mapping = {
             # 政治类 - 高优先级
@@ -184,6 +187,40 @@ class InformationAdvantageStrategy:
         self.processed_news = set()
         self.processing_window = timedelta(minutes=30)
     
+    def has_existing_position(self, market: Dict) -> bool:
+        """检查是否已持有指定市场的仓位"""
+        market_id = market.get('id', '')
+        if not market_id:
+            return False
+        
+        for position in self.current_positions:
+            if position.get('market_id') == market_id:
+                return True
+        
+        return False
+    
+    def has_position_in_impact(self, impact: NewsImpact) -> bool:
+        """检查新闻影响中的任一市场是否已有持仓"""
+        for market in impact.affected_markets:
+            if self.has_existing_position(market):
+                self.logger.info(f"市场已有持仓，跳过通知: {market.get('question', 'Unknown')[:50]}...")
+                return True
+        return False
+    
+    def add_position(self, market: Dict, direction: str, size: float, order_id: str = None):
+        """添加持仓记录"""
+        position = {
+            'market_id': market.get('id', ''),
+            'market_question': market.get('question', ''),
+            'direction': direction,
+            'size': size,
+            'entry_price': self.get_market_price(market),
+            'entry_time': datetime.now(),
+            'order_id': order_id
+        }
+        self.current_positions.append(position)
+        self.logger.info(f"已添加持仓记录: {market.get('question', 'Unknown')[:30]}... {direction}仓位: ${size:.2f}")
+
     def generate_signal_id(self, impact: NewsImpact) -> str:
         """生成交易信号的唯一ID"""
         # 基于关键词、方向和置信度生成唯一标识
@@ -222,6 +259,11 @@ class InformationAdvantageStrategy:
                             self.logger.info(f"新闻: {news.get('title', 'N/A')[:50]}...")
                             self.logger.info(f"方向: {impact.direction}")
                             self.logger.info(f"关键词: {', '.join(impact.keywords)}")
+                            
+                            # 检查是否已持仓，如果已持仓则跳过发送通知
+                            if self.has_position_in_impact(impact):
+                                self.logger.info(f"新闻影响的市场已有持仓，跳过发送Telegram通知: {news.get('title', 'N/A')[:50]}...")
+                                continue
                             
                             # 发送信息优势交易机会通知到Telegram
                             if self.notification_service:
@@ -583,6 +625,9 @@ class InformationAdvantageStrategy:
                         price=market.get('yes_price', 0.5)
                     )
                     print(f"✅ 买入订单: {order_id} - {market['question'][:30]}...")
+                    
+                    # 添加持仓记录
+                    self.add_position(market, 'buy', position_size, order_id)
                 
                 elif impact.direction == 'sell':
                     # 获取token_id（条件代币地址）
@@ -598,6 +643,9 @@ class InformationAdvantageStrategy:
                         price=market.get('yes_price', 0.5)
                     )
                     print(f"✅ 卖出订单: {order_id} - {market['question'][:30]}...")
+                    
+                    # 添加持仓记录
+                    self.add_position(market, 'sell', position_size, order_id)
                 
                 # 记录交易
                 self.log_trade(impact, market, order_id)

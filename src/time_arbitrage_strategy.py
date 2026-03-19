@@ -56,6 +56,9 @@ class TimeArbitrageStrategy:
         self.executed_opportunities = set()  # 存储已执行的时间套利机会ID
         self.logger.info("重复下单防护机制已启用 - 永久一次下单")
         
+        # 持仓跟踪 - 用于检查是否已持仓
+        self.current_positions: List[Dict] = []
+        
         # 时间套利参数
         self.time_arbitrage_params = {
             'max_days_to_expiry': 30,      # 最大30天到期的市场
@@ -78,6 +81,32 @@ class TimeArbitrageStrategy:
             'market_consensus_weight': 0.2,
             'liquidity_weight': 0.1
         }
+    
+    def has_existing_position(self, market: Dict) -> bool:
+        """检查是否已持有指定市场的仓位"""
+        market_id = market.get('id', '')
+        if not market_id:
+            return False
+        
+        for position in self.current_positions:
+            if position.get('market_id') == market_id:
+                return True
+        
+        return False
+    
+    def add_position(self, market: Dict, direction: str, size: float, order_id: str = None):
+        """添加持仓记录"""
+        position = {
+            'market_id': market.get('id', ''),
+            'market_question': market.get('question', ''),
+            'direction': direction,
+            'size': size,
+            'entry_price': self.get_market_price(market),
+            'entry_time': datetime.now(),
+            'order_id': order_id
+        }
+        self.current_positions.append(position)
+        self.logger.info(f"已添加持仓记录: {market.get('question', 'Unknown')[:30]}... {direction}仓位: ${size:.2f}")
     
     def generate_opportunity_id(self, opportunity: TimeArbitrageOpportunity) -> str:
         """生成时间套利机会的唯一ID"""
@@ -126,6 +155,11 @@ class TimeArbitrageStrategy:
                     self.logger.info(f"   价格差异: {opportunity.price_discrepancy:.2%}")
                     self.logger.info(f"   预期收益: {opportunity.expected_return:.2%}")
                     self.logger.info(f"   紧急程度: {opportunity.urgency}")
+                    
+                    # 检查是否已持仓，如果已持仓则跳过发送通知
+                    if self.has_existing_position(opportunity.market):
+                        self.logger.info(f"市场已有持仓，跳过发送Telegram通知: {opportunity.market.get('question', 'Unknown')[:50]}...")
+                        continue
                     
                     # 发送时间套利机会通知到Telegram
                     if self.notification_service:
@@ -494,6 +528,9 @@ class TimeArbitrageStrategy:
             )
             print(f"✅ 买入订单: {order_id} - {opportunity.market['question'][:30]}...")
             
+            # 添加持仓记录
+            self.add_position(opportunity.market, 'buy', position_size, order_id)
+            
         except Exception as e:
             print(f"❌ 买入失败: {e}")
     
@@ -515,6 +552,9 @@ class TimeArbitrageStrategy:
                 price=opportunity.current_price
             )
             print(f"✅ 卖出订单: {order_id} - {opportunity.market['question'][:30]}...")
+            
+            # 添加持仓记录
+            self.add_position(opportunity.market, 'sell', position_size, order_id)
             
         except Exception as e:
             print(f"❌ 卖出失败: {e}")

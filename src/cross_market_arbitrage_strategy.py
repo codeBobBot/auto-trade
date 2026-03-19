@@ -63,6 +63,9 @@ class CrossMarketArbitrageStrategy:
         self.executed_signals = set()  # 存储已执行的套利信号ID
         self.logger.info("重复下单防护机制已启用 - 永久一次下单")
         
+        # 持仓跟踪 - 用于检查是否已持仓
+        self.current_positions: List[Dict] = []
+        
         # 相关市场定义
         self.correlated_market_patterns = {
             # 选举相关
@@ -120,6 +123,42 @@ class CrossMarketArbitrageStrategy:
             'min_return': 0.03        # 最小预期收益3%
         }
     
+    def has_existing_position(self, market: Dict) -> bool:
+        """检查是否已持有指定市场的仓位"""
+        market_id = market.get('id', '')
+        if not market_id:
+            return False
+        
+        for position in self.current_positions:
+            if position.get('market_id') == market_id:
+                return True
+        
+        return False
+    
+    def has_position_in_signal(self, signal: ArbitrageSignal) -> bool:
+        """检查套利信号中的任一市场是否已有持仓"""
+        if self.has_existing_position(signal.correlated_market.market1):
+            self.logger.info(f"市场1已有持仓，跳过通知: {signal.correlated_market.market1.get('question', 'Unknown')[:50]}...")
+            return True
+        if self.has_existing_position(signal.correlated_market.market2):
+            self.logger.info(f"市场2已有持仓，跳过通知: {signal.correlated_market.market2.get('question', 'Unknown')[:50]}...")
+            return True
+        return False
+    
+    def add_position(self, market: Dict, direction: str, size: float, order_id: str = None):
+        """添加持仓记录"""
+        position = {
+            'market_id': market.get('id', ''),
+            'market_question': market.get('question', ''),
+            'direction': direction,
+            'size': size,
+            'entry_price': self.get_market_price(market),
+            'entry_time': datetime.now(),
+            'order_id': order_id
+        }
+        self.current_positions.append(position)
+        self.logger.info(f"已添加持仓记录: {market.get('question', 'Unknown')[:30]}... {direction}仓位: ${size:.2f}")
+
     def generate_signal_id(self, signal: ArbitrageSignal) -> str:
         """生成套利信号的唯一ID"""
         # 基于市场ID和类型生成唯一标识
@@ -163,6 +202,11 @@ class CrossMarketArbitrageStrategy:
                     self.logger.info(f"   预期收益: {signal.expected_return:.2%}")
                     self.logger.info(f"   置信度: {signal.confidence:.2f}")
                     self.logger.info(f"   描述: {signal.description}")
+                    
+                    # 检查是否已持仓，如果已持仓则跳过发送通知
+                    if self.has_position_in_signal(signal):
+                        self.logger.info(f"跨市场套利信号涉及的市场已有持仓，跳过发送Telegram通知: {signal.description[:50]}...")
+                        continue
                     
                     # 发送跨市场套利机会通知到Telegram
                     if self.notification_service:
@@ -472,6 +516,9 @@ class CrossMarketArbitrageStrategy:
             )
             self.logger.info(f"买入订单: {order_id} - {market['question'][:30]}...")
             
+            # 添加持仓记录
+            self.add_position(market, 'buy', position_size, order_id)
+            
         except Exception as e:
             self.logger.error(f"买入失败: {e}")
     
@@ -493,6 +540,9 @@ class CrossMarketArbitrageStrategy:
                 price=self.get_market_price(market)
             )
             self.logger.info(f"卖出订单: {order_id} - {market['question'][:30]}...")
+            
+            # 添加持仓记录
+            self.add_position(market, 'sell', position_size, order_id)
             
         except Exception as e:
             self.logger.error(f"卖出失败: {e}")
