@@ -38,6 +38,14 @@ class TelegramBotService:
         self.logger = get_telegram_logger()
         self.logger.info(f"初始化Telegram Bot服务 - Chat ID: {chat_id}")
         
+        # 进程锁机制
+        self.lock_file = f"/tmp/telegram_bot_{chat_id}.lock"
+        self._check_single_instance()
+        
+        # 运行状态
+        self.is_running = False
+        self.bot_thread = None
+        
         # Bot配置
         self.bot = Bot(token=token)
         self.application = None
@@ -48,17 +56,54 @@ class TelegramBotService:
         # 命令注册
         self.commands: Dict[str, BotCommand] = {}
         self._register_commands()
-        
-        # 运行状态
-        self.is_running = False
-        self.bot_thread = None
-        
-        # 日志
-        self.logger = logging.getLogger('TelegramBot')
-        
-        print(f"🤖 Telegram Bot服务已初始化")
-        print(f"   Token: {token[:10]}...")
-        print(f"   管理员Chat ID: {chat_id}")
+    
+    def _check_single_instance(self):
+        """检查单实例，防止多实例运行"""
+        try:
+            import os
+            import fcntl
+            
+            # 尝试创建锁文件
+            self.lock_fd = open(self.lock_file, 'w')
+            
+            try:
+                # 尝试获取文件锁
+                fcntl.flock(self.lock_fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                
+                # 写入进程信息
+                self.lock_fd.write(f"{os.getpid()}\n")
+                self.lock_fd.flush()
+                
+                self.logger.info("✅ 获取Telegram Bot实例锁成功")
+                
+            except IOError:
+                # 锁文件被占用，说明已有实例在运行
+                self.logger.error("❌ 检测到其他Telegram Bot实例正在运行")
+                self.logger.error("💡 请先停止其他实例或等待其完成")
+                raise RuntimeError("多个Telegram Bot实例冲突")
+                
+        except ImportError:
+            # Windows系统或其他不支持fcntl的系统
+            self.logger.warning("⚠️  系统不支持文件锁，跳过单实例检查")
+            self.lock_fd = None
+        except Exception as e:
+            self.logger.error(f"❌ 单实例检查失败: {e}")
+            self.lock_fd = None
+    
+    def _release_lock(self):
+        """释放进程锁"""
+        try:
+            if hasattr(self, 'lock_fd') and self.lock_fd:
+                self.lock_fd.close()
+                
+            # 删除锁文件
+            if os.path.exists(self.lock_file):
+                os.remove(self.lock_file)
+                
+            self.logger.info("✅ Telegram Bot实例锁已释放")
+            
+        except Exception as e:
+            self.logger.error(f"❌ 释放实例锁失败: {e}")
     
     def _register_commands(self):
         """注册所有命令"""
@@ -853,29 +898,69 @@ class TelegramBotService:
         """运行Bot"""
         try:
             import asyncio
+            from telegram.error import Conflict, TimedOut, NetworkError
+            
             # 创建新的事件循环
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             
             async def run_polling():
-                await self.application.initialize()
-                await self.application.start()
-                await self.application.updater.start_polling(drop_pending_updates=True)
+                try:
+                    await self.application.initialize()
+                    await self.application.start()
+                    
+                    # 添加重试机制和冲突处理
+                    max_retries = 3
+                    retry_count = 0
+                    
+                    while retry_count < max_retries and self.is_running:
+                        try:
+                            await self.application.updater.start_polling(drop_pending_updates=True)
+                            break  # 成功启动，退出重试循环
+                        except Conflict as e:
+                            self.logger.warning(f"Telegram Bot冲突: {e}")
+                            if retry_count < max_retries - 1:
+                                retry_count += 1
+                                self.logger.info(f"等待 {retry_count * 5} 秒后重试...")
+                                await asyncio.sleep(retry_count * 5)
+                                continue
+                            else:
+                                self.logger.error("多次重试后仍有冲突，停止Bot")
+                                return
+                        except (TimedOut, NetworkError) as e:
+                            self.logger.warning(f"Telegram网络错误: {e}")
+                            if retry_count < max_retries - 1:
+                                retry_count += 1
+                                self.logger.info(f"等待 {retry_count * 3} 秒后重试...")
+                                await asyncio.sleep(retry_count * 3)
+                                continue
+                            else:
+                                self.logger.error("多次重试后仍有网络问题，停止Bot")
+                                return
+                    
+                    # 保持运行
+                    while self.is_running:
+                        await asyncio.sleep(1)
                 
-                # 保持运行
-                while self.is_running:
-                    await asyncio.sleep(1)
-                
-                # 清理
-                await self.application.updater.stop()
-                await self.application.stop()
-                await self.application.shutdown()
+                except Exception as e:
+                    self.logger.error(f"Bot启动失败: {e}")
+                finally:
+                    # 清理
+                    try:
+                        if hasattr(self.application, 'updater') and self.application.updater.is_running:
+                            await self.application.updater.stop()
+                        if self.application.running:
+                            await self.application.stop()
+                        await self.application.shutdown()
+                    except Exception as e:
+                        self.logger.error(f"Bot清理失败: {e}")
             
             loop.run_until_complete(run_polling())
             loop.close()
             
         except Exception as e:
             self.logger.error(f"Bot运行错误: {e}")
+            self.logger.info("建议: 检查是否有其他Bot实例在运行")
     
     def stop_bot(self):
         """停止Bot"""
@@ -883,8 +968,16 @@ class TelegramBotService:
             return
         
         self.is_running = False
-        if self.application:
-            self.application.stop()
+        
+        try:
+            if self.application:
+                self.application.stop()
+                self.logger.info("✅ Telegram Bot已停止")
+        except Exception as e:
+            self.logger.error(f"❌ 停止Bot失败: {e}")
+        finally:
+            # 释放进程锁
+            self._release_lock()
         
         print("⏹️ Telegram Bot已停止")
     

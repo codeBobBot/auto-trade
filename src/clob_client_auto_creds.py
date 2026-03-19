@@ -33,6 +33,9 @@ class ClobTradingClientAutoCreds:
         self.api_key = os.getenv('POLYMARKET_API_KEY', '')
         self.api_secret = os.getenv('POLYMARKET_API_SECRET', '')
         self.api_passphrase = os.getenv('POLYMARKET_API_PASSPHRASE', '')
+        
+        # 新增：代理钱包地址（funder address）
+        self.funder_address = os.getenv('POLYMARKET_FUNDER_ADDRESS', '')
 
         self.client = None
         self.wallet_address = None
@@ -41,7 +44,7 @@ class ClobTradingClientAutoCreds:
 
         self._init_client()
 
-    # ✅ 核心修复1：不再强制 signature_type
+    # ✅ 核心修复1：使用官方推荐的参数
     def _init_client(self):
         try:
             if self.api_key and self.api_secret and self.api_passphrase:
@@ -53,12 +56,23 @@ class ClobTradingClientAutoCreds:
                     api_passphrase=self.api_passphrase
                 )
 
-                self.client = ClobClient(
-                    host=self.host,
-                    chain_id=self.chain_id,
-                    key=self.private_key,
-                    creds=creds
-                )
+                # 官方推荐：使用 signature_type=2 (GNOSIS_SAFE) 和 funder 参数
+                client_params = {
+                    'host': self.host,
+                    'chain_id': self.chain_id,
+                    'key': self.private_key,
+                    'creds': creds,
+                    'signature_type': 2  # GNOSIS_SAFE（浏览器钱包登录）
+                }
+                
+                # 如果提供了代理钱包地址，添加 funder 参数
+                if self.funder_address:
+                    client_params['funder'] = self.funder_address
+                    self.logger.info(f"✅ 使用代理钱包: {self.funder_address}")
+                else:
+                    self.logger.warning("⚠️  未设置代理钱包地址，可能影响交易")
+
+                self.client = ClobClient(**client_params)
 
             else:
                 self.logger.info("🔧 首次生成 API 凭证")
@@ -73,12 +87,23 @@ class ClobTradingClientAutoCreds:
 
                 self._save_creds(creds)
 
-                self.client = ClobClient(
-                    host=self.host,
-                    chain_id=self.chain_id,
-                    key=self.private_key,
-                    creds=creds
-                )
+                # 官方推荐：使用 signature_type=2 (GNOSIS_SAFE) 和 funder 参数
+                client_params = {
+                    'host': self.host,
+                    'chain_id': self.chain_id,
+                    'key': self.private_key,
+                    'creds': creds,
+                    'signature_type': 2  # GNOSIS_SAFE（浏览器钱包登录）
+                }
+                
+                # 如果提供了代理钱包地址，添加 funder 参数
+                if self.funder_address:
+                    client_params['funder'] = self.funder_address
+                    self.logger.info(f"✅ 使用代理钱包: {self.funder_address}")
+                else:
+                    self.logger.warning("⚠️  未设置代理钱包地址，可能影响交易")
+
+                self.client = ClobClient(**client_params)
 
             self.wallet_address = self.client.get_address()
             self.logger.info(f"钱包地址: {self.wallet_address}")
